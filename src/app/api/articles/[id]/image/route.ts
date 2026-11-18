@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     const site = await loadSite(art.site_id);
     const seen = ((art as unknown as { stock_seen?: string[] }).stock_seen ?? []).slice(-60);
     const slug = art.slug || art.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60) || "image";
-    const img = await attachImage(site, art.title, mode === "stock" ? "" : await visualPrompt(site, art.title), slug, art.title, mode, seen);
+    const img = await attachImage(site, art.title, mode === "stock" ? "" : await visualPrompt(site, art.title), slug, typeof body.query === "string" && body.query.trim() ? body.query.trim() : art.title, mode, seen, art.html_body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
     if (!img) throw new Error(mode === "ai" ? "No AI image produced. Check CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN in your environment variables (or the daily free allowance is used up)." : mode === "stock" ? "No stock photo found. Check PIXABAY_API_KEY or PEXELS_API_KEY in your environment variables, or try again." : "No image produced. Add Cloudflare and/or Pixabay keys in your environment variables.");
     must(await db().from("articles").update({ featured_img_url: img.url, featured_media_id: img.id }).eq("id", id).select("id"));
     if (img.stockId) await db().from("articles").update({ stock_seen: [...seen, img.stockId] }).eq("id", id); // needs migration 0002; harmless if absent

@@ -26,8 +26,24 @@ export async function visualPrompt(site: Site, topic: string): Promise<string> {
   }
 }
 
+/** Gemini turns a topic into concrete, photographable stock-search queries (stock sites match words, not meaning). */
+export async function stockQueries(site: Site, topic: string, context = ""): Promise<string[]> {
+  try {
+    const r = await generate({
+      json: true,
+      temperature: 0.4,
+      prompt: `Blog niche: ${site.niche || "general"}. Article topic: "${topic}".${context ? `\nArticle opening: ${context.slice(0, 500)}` : ""}
+Give 3 stock photo search queries (1 to 3 words each) for a hero photo that clearly illustrates what this article is actually about. Rules: use concrete, visible subjects (people doing something, places, objects), never abstract concepts. Avoid ambiguous words that match unrelated photos (for example "social" returns phones and social media icons). Order from most specific to most general. Return a JSON array of 3 strings only.`,
+    });
+    const q = (JSON.parse(r.text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim()) as string[]).filter((x) => typeof x === "string" && x.trim());
+    return q.slice(0, 3);
+  } catch {
+    return [];
+  }
+}
+
 /** Featured image: Cloudflare AI first, Pexels stock photo as fallback. Uploaded to the WP media library. */
-export async function attachImage(site: Site, title: string, imagePrompt: string, slug: string, stockQuery?: string, mode: "auto" | "ai" | "stock" = "auto", exclude: string[] = []): Promise<{ id: number; url: string; source: string; stockId?: string } | null> {
+export async function attachImage(site: Site, title: string, imagePrompt: string, slug: string, stockQuery?: string, mode: "auto" | "ai" | "stock" = "auto", exclude: string[] = [], context = ""): Promise<{ id: number; url: string; source: string; stockId?: string } | null> {
   const wp = new WP(site);
   if (mode !== "stock") try {
     const ai = await generateImage(imagePrompt || (await visualPrompt(site, title)));
@@ -37,7 +53,9 @@ export async function attachImage(site: Site, title: string, imagePrompt: string
     }
   } catch { /* fall through to stock */ }
   if (mode !== "ai") try {
-    const stock = await findStockPhoto([stockQuery ?? title, site.niche], exclude);
+    const manual = mode === "stock" && stockQuery && stockQuery !== title;
+    const queries = manual ? [stockQuery!] : [...(await stockQueries(site, stockQuery ?? title, context)), site.niche];
+    const stock = await findStockPhoto(queries, exclude);
     if (stock) {
       const up = await wp.uploadMedia(stock.bytes, `${slug}.jpg`, "image/jpeg", `${title} (${stock.credit})`);
       return { ...up, source: "stock", stockId: stock.stockId };

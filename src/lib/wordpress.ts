@@ -15,11 +15,16 @@ export class WP {
 
   private async req(path: string, init: RequestInit = {}, query = ""): Promise<Response> {
     const url = `${this.base}/wp-json${path}${query}`;
-    const res = await fetch(url, {
-      ...init,
-      headers: { Authorization: this.auth, "User-Agent": UA, ...(init.headers as Record<string, string>) },
-    });
-    return res;
+    try {
+      return await fetch(url, {
+        ...init,
+        redirect: "follow",
+        headers: { Authorization: this.auth, "User-Agent": UA, ...(init.headers as Record<string, string>) },
+      });
+    } catch (e) {
+      const cause = (e as { cause?: { code?: string; message?: string } }).cause;
+      throw new Error(`Could not reach ${url} (${cause?.code ?? cause?.message ?? (e as Error).message}). Check the WordPress URL is exactly your site address starting with https:// and opens in a browser.`);
+    }
   }
 
   private async json<T>(res: Response): Promise<T> {

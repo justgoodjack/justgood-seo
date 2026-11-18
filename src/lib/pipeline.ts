@@ -13,11 +13,24 @@ async function loadSite(id: string): Promise<Site> {
   return must(await db().from("sites").select("*").eq("id", id).single()) as Site;
 }
 
+/** Turn a topic into a text-free visual scene description for the image model (never pass titles to it). */
+export async function visualPrompt(site: Site, topic: string): Promise<string> {
+  try {
+    const r = await generate({
+      prompt: `Write ONE sentence (max 40 words) describing a photograph that would illustrate a blog article about "${topic}" for a ${site.niche || "general"} blog. Style: ${site.image_style}. Describe only visible subjects, setting, light and mood. The scene must contain NO writing of any kind: no signs, placards, posters, books, screens, labels. Do not mention the article title. Output only the sentence.`,
+      temperature: 0.6,
+    });
+    return r.text.trim().replace(/^["']|["']$/g, "");
+  } catch {
+    return `${site.niche || "editorial"} concept photograph, ${site.image_style}`;
+  }
+}
+
 /** Featured image: Cloudflare AI first, Pexels stock photo as fallback. Uploaded to the WP media library. */
 export async function attachImage(site: Site, title: string, imagePrompt: string, slug: string, stockQuery?: string): Promise<{ id: number; url: string; source: string } | null> {
   const wp = new WP(site);
   try {
-    const ai = await generateImage(imagePrompt || `${title}, ${site.image_style}`);
+    const ai = await generateImage(imagePrompt || (await visualPrompt(site, title)));
     if (ai) {
       const up = await wp.uploadMedia(ai, `${slug}.png`, "image/png", title);
       return { ...up, source: "ai" };

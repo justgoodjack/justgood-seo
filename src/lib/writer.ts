@@ -19,7 +19,7 @@ Hard rules:
 - GEO structure: open every H2 section with a direct, self-contained 2-sentence answer, then expand. Include at least one HTML comparison <table> where it fits. End with a visible FAQ section (H2 "Frequently Asked Questions", each question an H3 with a short answer).
 - Cite primary sources inline with <a href> links to the real source pages you found. Link text must be descriptive.
 - Output clean semantic HTML only for the body: h2, h3, p, ul, ol, li, table, strong, em, a, blockquote. No h1, no <html>/<body>, no inline styles, no scripts, no markdown.
-- Insert exactly 2 image placeholders as HTML comments in the form <!--IMG: short concrete visual description, no text in image--> directly after the opening answer of two different H2 sections. Never write <img> tags yourself.
+- Insert exactly 2 image placeholders as HTML comments in the form <!--IMG: short concrete visual description, no text in image--> directly after the opening answer of two different H2 sections. Never write <img> tags yourself. Descriptions must describe a scene with no writing in it (no signs, placards, posters, books, screens, labels) and must not repeat the article title.
 - No filler intros ("In today's fast-paced world"), no AI-sounding clichés, no em dashes.`;
 
 function stripUnsafe(html: string): string {
@@ -54,7 +54,7 @@ Write a complete article of roughly 1,400 to 1,900 words that would deserve to r
 ${linkBlock}
 Respond in EXACTLY this format, nothing before or after:
 ===META===
-{"title": "...(under 62 chars, includes keyword naturally)", "slug": "kebab-case-slug", "meta_description": "...(140-155 chars)", "image_prompt": "...(one sentence describing a fitting hero image, in this style: ${site.image_style})", "faq": [{"q": "...", "a": "...(1-3 sentences, plain text)"}]}
+{"title": "...(under 62 chars, includes keyword naturally)", "slug": "kebab-case-slug", "meta_description": "...(140-155 chars)", "image_prompt": "...(one sentence describing a hero PHOTO SCENE in this style: ${site.image_style}. Describe only visible subjects, setting, light and mood. Never include the article title or any words, and avoid scenes where writing would appear: no signs, placards, posters, books, screens or labels)", "faq": [{"q": "...", "a": "...(1-3 sentences, plain text)"}]}
 ===BODY===
 <the HTML body>`;
 

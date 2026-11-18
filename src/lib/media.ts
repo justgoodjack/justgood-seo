@@ -1,5 +1,8 @@
 import { env } from "./config";
 
+export const NO_TEXT =
+  "Pure photograph with absolutely no text, no words, no letters, no numbers, no captions, no titles, no signs, no banners, no posters, no logos, no watermarks, no screens or pages with writing. Avoid placards, books, newspapers and storefront signage.";
+
 /** Cloudflare Workers AI (FLUX.1 schnell). Returns null if not configured or on failure. */
 export async function generateImage(prompt: string): Promise<Buffer | null> {
   const acct = env("CLOUDFLARE_ACCOUNT_ID", false);
@@ -8,7 +11,7 @@ export async function generateImage(prompt: string): Promise<Buffer | null> {
   const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acct}/ai/run/@cf/black-forest-labs/flux-1-schnell`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: prompt.slice(0, 2000), steps: 6 }),
+    body: JSON.stringify({ prompt: `${prompt.slice(0, 1500)}. ${NO_TEXT}`, steps: 6 }),
   });
   if (!res.ok) return null;
   const data = await res.json();

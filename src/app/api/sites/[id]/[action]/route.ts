@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       case "outreach": return NextResponse.json(await findOutreach(site, 3));
       case "update": {
         const patch: Record<string, unknown> = {};
-        for (const k of ["name", "niche", "voice_prompt", "image_style", "publish_mode", "cadence_per_month", "gsc_property", "seo_plugin", "default_category_id", "seed_topics", "example_urls"]) {
+        for (const k of ["wp_url", "wp_user", "name", "niche", "voice_prompt", "image_style", "publish_mode", "cadence_per_month", "gsc_property", "seo_plugin", "default_category_id", "seed_topics", "example_urls"]) {
           if (k in body) patch[k] = body[k];
         }
         if (body.wp_app_pass) patch.wp_app_pass_enc = encrypt(body.wp_app_pass);

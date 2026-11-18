@@ -12,6 +12,7 @@ export function SettingsForm({ site }: { site: Site }) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const body: Record<string, unknown> = {
+      wp_url: String(f.get("wp_url") || "").trim().replace(/\/+$/, ""), wp_user: String(f.get("wp_user") || "").trim(),
       niche: f.get("niche"), voice_prompt: f.get("voice_prompt"), image_style: f.get("image_style"),
       publish_mode: f.get("publish_mode"), cadence_per_month: Number(f.get("cadence_per_month")),
       seo_plugin: f.get("seo_plugin"), gsc_property: String(f.get("gsc_property") || "") || null,
@@ -26,6 +27,8 @@ export function SettingsForm({ site }: { site: Site }) {
   return (
     <form onSubmit={save} className="card">
       <div className="grid2">
+        <div><label>WordPress URL (must start with https://)</label><input name="wp_url" defaultValue={site.wp_url} /></div>
+        <div><label>WordPress username</label><input name="wp_user" defaultValue={site.wp_user} /></div>
         <div><label>Niche (one line)</label><input name="niche" defaultValue={site.niche} /></div>
         <div><label>Seed topics (comma or newline)</label><input name="seed_topics" defaultValue={site.seed_topics.join(", ")} /></div>
         <div><label>Publish mode</label>

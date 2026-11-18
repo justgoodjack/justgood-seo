@@ -42,18 +42,20 @@ async function download(url: string): Promise<Buffer | null> {
 async function pexels(query: string, seen: Set<string>): Promise<StockPhoto | null> {
   const key = env("PEXELS_API_KEY", false);
   if (!key) return null;
+  const pool: { id: number; photographer: string; src: { large2x?: string; large?: string } }[] = [];
   for (let page = 1; page <= 3; page++) {
     const q = new URLSearchParams({ query: query.slice(0, 100), per_page: "30", orientation: "landscape", page: String(page) });
     const res = await fetch(`https://api.pexels.com/v1/search?${q}`, { headers: { Authorization: key } });
-    if (!res.ok) return null;
-    const photos: { id: number; photographer: string; src: { large2x?: string; large?: string } }[] = (await res.json()).photos ?? [];
-    if (!photos.length) return null;
-    const p = photos.find((x) => !seen.has(`pexels:${x.id}`));
-    const src = p?.src.large2x ?? p?.src.large;
-    if (p && src) {
-      const bytes = await download(src);
-      if (bytes) return { bytes, credit: `Photo by ${p.photographer} on Pexels`, stockId: `pexels:${p.id}` };
-    }
+    if (!res.ok) break;
+    const photos = (await res.json()).photos ?? [];
+    if (!photos.length) break;
+    pool.push(...photos.filter((x: { id: number }) => !seen.has(`pexels:${x.id}`)));
+  }
+  for (let tries = 0; tries < 4 && pool.length; tries++) {
+    const [p] = pool.splice(Math.floor(Math.random() * pool.length), 1);
+    const src = p.src.large2x ?? p.src.large;
+    const bytes = src ? await download(src) : null;
+    if (bytes) return { bytes, credit: `Photo by ${p.photographer} on Pexels`, stockId: `pexels:${p.id}` };
   }
   return null;
 }
@@ -61,17 +63,19 @@ async function pexels(query: string, seen: Set<string>): Promise<StockPhoto | nu
 async function pixabay(query: string, seen: Set<string>): Promise<StockPhoto | null> {
   const key = env("PIXABAY_API_KEY", false);
   if (!key) return null;
+  const pool: { id: number; user: string; largeImageURL?: string }[] = [];
   for (let page = 1; page <= 3; page++) {
     const q = new URLSearchParams({ key, q: query.slice(0, 100), image_type: "photo", orientation: "horizontal", safesearch: "true", per_page: "30", page: String(page) });
     const res = await fetch(`https://pixabay.com/api/?${q}`);
-    if (!res.ok) return null;
-    const hits: { id: number; user: string; largeImageURL?: string }[] = (await res.json()).hits ?? [];
-    if (!hits.length) return null;
-    const h = hits.find((x) => x.largeImageURL && !seen.has(`pixabay:${x.id}`));
-    if (h?.largeImageURL) {
-      const bytes = await download(h.largeImageURL);
-      if (bytes) return { bytes, credit: `Image by ${h.user} on Pixabay`, stockId: `pixabay:${h.id}` };
-    }
+    if (!res.ok) break;
+    const hits = (await res.json()).hits ?? [];
+    if (!hits.length) break;
+    pool.push(...hits.filter((x: { id: number; largeImageURL?: string }) => x.largeImageURL && !seen.has(`pixabay:${x.id}`)));
+  }
+  for (let tries = 0; tries < 4 && pool.length; tries++) {
+    const [h] = pool.splice(Math.floor(Math.random() * pool.length), 1);
+    const bytes = await download(h.largeImageURL!);
+    if (bytes) return { bytes, credit: `Image by ${h.user} on Pixabay`, stockId: `pixabay:${h.id}` };
   }
   return null;
 }

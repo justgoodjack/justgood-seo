@@ -27,7 +27,7 @@ export async function visualPrompt(site: Site, topic: string): Promise<string> {
 }
 
 /** Featured image: Cloudflare AI first, Pexels stock photo as fallback. Uploaded to the WP media library. */
-export async function attachImage(site: Site, title: string, imagePrompt: string, slug: string, stockQuery?: string, mode: "auto" | "ai" | "stock" = "auto"): Promise<{ id: number; url: string; source: string } | null> {
+export async function attachImage(site: Site, title: string, imagePrompt: string, slug: string, stockQuery?: string, mode: "auto" | "ai" | "stock" = "auto", exclude: string[] = []): Promise<{ id: number; url: string; source: string; stockId?: string } | null> {
   const wp = new WP(site);
   if (mode !== "stock") try {
     const ai = await generateImage(imagePrompt || (await visualPrompt(site, title)));
@@ -37,10 +37,10 @@ export async function attachImage(site: Site, title: string, imagePrompt: string
     }
   } catch { /* fall through to stock */ }
   if (mode !== "ai") try {
-    const stock = await findStockPhoto(stockQuery ?? title);
+    const stock = await findStockPhoto([stockQuery ?? title, site.niche], exclude);
     if (stock) {
       const up = await wp.uploadMedia(stock.bytes, `${slug}.jpg`, "image/jpeg", `${title} (${stock.credit})`);
-      return { ...up, source: "stock" };
+      return { ...up, source: "stock", stockId: stock.stockId };
     }
   } catch { /* no image */ }
   return null;

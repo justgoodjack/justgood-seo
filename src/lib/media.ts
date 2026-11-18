@@ -32,34 +32,57 @@ export async function findYouTubeVideo(query: string): Promise<{ id: string; tit
   return item ? { id: item.id.videoId, title: item.snippet.title } : null;
 }
 
-async function pexels(query: string): Promise<{ bytes: Buffer; credit: string } | null> {
+export interface StockPhoto { bytes: Buffer; credit: string; stockId: string }
+
+async function download(url: string): Promise<Buffer | null> {
+  const r = await fetch(url);
+  return r.ok ? Buffer.from(await r.arrayBuffer()) : null;
+}
+
+async function pexels(query: string, seen: Set<string>): Promise<StockPhoto | null> {
   const key = env("PEXELS_API_KEY", false);
   if (!key) return null;
-  const q = new URLSearchParams({ query: query.slice(0, 100), per_page: "5", orientation: "landscape" });
-  const res = await fetch(`https://api.pexels.com/v1/search?${q}`, { headers: { Authorization: key } });
-  if (!res.ok) return null;
-  const photo = (await res.json()).photos?.[0];
-  const src: string | undefined = photo?.src?.large2x ?? photo?.src?.large;
-  if (!src) return null;
-  const img = await fetch(src);
-  if (!img.ok) return null;
-  return { bytes: Buffer.from(await img.arrayBuffer()), credit: `Photo by ${photo.photographer} on Pexels` };
+  for (let page = 1; page <= 3; page++) {
+    const q = new URLSearchParams({ query: query.slice(0, 100), per_page: "30", orientation: "landscape", page: String(page) });
+    const res = await fetch(`https://api.pexels.com/v1/search?${q}`, { headers: { Authorization: key } });
+    if (!res.ok) return null;
+    const photos: { id: number; photographer: string; src: { large2x?: string; large?: string } }[] = (await res.json()).photos ?? [];
+    if (!photos.length) return null;
+    const p = photos.find((x) => !seen.has(`pexels:${x.id}`));
+    const src = p?.src.large2x ?? p?.src.large;
+    if (p && src) {
+      const bytes = await download(src);
+      if (bytes) return { bytes, credit: `Photo by ${p.photographer} on Pexels`, stockId: `pexels:${p.id}` };
+    }
+  }
+  return null;
 }
 
-async function pixabay(query: string): Promise<{ bytes: Buffer; credit: string } | null> {
+async function pixabay(query: string, seen: Set<string>): Promise<StockPhoto | null> {
   const key = env("PIXABAY_API_KEY", false);
   if (!key) return null;
-  const q = new URLSearchParams({ key, q: query.slice(0, 100), image_type: "photo", orientation: "horizontal", safesearch: "true", per_page: "5" });
-  const res = await fetch(`https://pixabay.com/api/?${q}`);
-  if (!res.ok) return null;
-  const hit = (await res.json()).hits?.[0];
-  if (!hit?.largeImageURL) return null;
-  const img = await fetch(hit.largeImageURL);
-  if (!img.ok) return null;
-  return { bytes: Buffer.from(await img.arrayBuffer()), credit: `Image by ${hit.user} on Pixabay` };
+  for (let page = 1; page <= 3; page++) {
+    const q = new URLSearchParams({ key, q: query.slice(0, 100), image_type: "photo", orientation: "horizontal", safesearch: "true", per_page: "30", page: String(page) });
+    const res = await fetch(`https://pixabay.com/api/?${q}`);
+    if (!res.ok) return null;
+    const hits: { id: number; user: string; largeImageURL?: string }[] = (await res.json()).hits ?? [];
+    if (!hits.length) return null;
+    const h = hits.find((x) => x.largeImageURL && !seen.has(`pixabay:${x.id}`));
+    if (h?.largeImageURL) {
+      const bytes = await download(h.largeImageURL);
+      if (bytes) return { bytes, credit: `Image by ${h.user} on Pixabay`, stockId: `pixabay:${h.id}` };
+    }
+  }
+  return null;
 }
 
-/** Free stock photo fallback: Pexels, then Pixabay. Returns bytes plus a credit line for alt text. */
-export async function findStockPhoto(query: string): Promise<{ bytes: Buffer; credit: string } | null> {
-  return (await pexels(query).catch(() => null)) ?? (await pixabay(query).catch(() => null));
+/** Free stock photo: tries each query on Pexels then Pixabay, skipping photos already shown (`exclude`). */
+export async function findStockPhoto(queries: string | string[], exclude: string[] = []): Promise<StockPhoto | null> {
+  const seen = new Set(exclude);
+  for (const q of Array.isArray(queries) ? queries : [queries]) {
+    if (!q.trim()) continue;
+    const hit = (await pexels(q, seen).catch(() => null)) ?? (await pixabay(q, seen).catch(() => null));
+    if (hit) return hit;
+  }
+  return null;
 }

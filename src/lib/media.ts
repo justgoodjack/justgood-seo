@@ -28,3 +28,18 @@ export async function findYouTubeVideo(query: string): Promise<{ id: string; tit
   const item = data.items?.[0];
   return item ? { id: item.id.videoId, title: item.snippet.title } : null;
 }
+
+/** Free stock photo fallback (Pexels). Returns bytes plus a credit line for alt text. */
+export async function findStockPhoto(query: string): Promise<{ bytes: Buffer; credit: string } | null> {
+  const key = env("PEXELS_API_KEY", false);
+  if (!key) return null;
+  const q = new URLSearchParams({ query: query.slice(0, 100), per_page: "5", orientation: "landscape" });
+  const res = await fetch(`https://api.pexels.com/v1/search?${q}`, { headers: { Authorization: key } });
+  if (!res.ok) return null;
+  const photo = (await res.json()).photos?.[0];
+  const src: string | undefined = photo?.src?.large2x ?? photo?.src?.large;
+  if (!src) return null;
+  const img = await fetch(src);
+  if (!img.ok) return null;
+  return { bytes: Buffer.from(await img.arrayBuffer()), credit: `Photo by ${photo.photographer} on Pexels` };
+}

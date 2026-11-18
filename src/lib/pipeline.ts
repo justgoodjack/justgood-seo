@@ -1,6 +1,6 @@
 import { db, must, logJob } from "./db";
 import { addDays, todayUTC } from "./config";
-import { generateImage } from "./media";
+import { findStockPhoto, generateImage } from "./media";
 import { faqJsonLd, withSchema, writeArticle } from "./writer";
 import { indexPost, relatedLinks } from "./linker";
 import { strip, WP } from "./wordpress";
@@ -13,23 +13,34 @@ async function loadSite(id: string): Promise<Site> {
   return must(await db().from("sites").select("*").eq("id", id).single()) as Site;
 }
 
+/** Featured image: Cloudflare AI first, Pexels stock photo as fallback. Uploaded to the WP media library. */
+export async function attachImage(site: Site, title: string, imagePrompt: string, slug: string): Promise<{ id: number; url: string; source: string } | null> {
+  const wp = new WP(site);
+  try {
+    const ai = await generateImage(imagePrompt || `${title}, ${site.image_style}`);
+    if (ai) {
+      const up = await wp.uploadMedia(ai, `${slug}.png`, "image/png", title);
+      return { ...up, source: "ai" };
+    }
+  } catch { /* fall through to stock */ }
+  try {
+    const stock = await findStockPhoto(title);
+    if (stock) {
+      const up = await wp.uploadMedia(stock.bytes, `${slug}.jpg`, "image/jpeg", `${title} (${stock.credit})`);
+      return { ...up, source: "stock" };
+    }
+  } catch { /* no image */ }
+  return null;
+}
+
 /** Draft one new article for a scheduled keyword (+ featured image uploaded to WP media). */
 export async function generateForKeyword(site: Site, kw: Keyword): Promise<string> {
   const links = await relatedLinks(site.id, kw.phrase, 5).catch(() => []);
   const draft = await writeArticle(site, kw.phrase, links);
 
-  let mediaId: number | null = null;
-  let imgUrl: string | null = null;
-  try {
-    const img = await generateImage(draft.imagePrompt);
-    if (img) {
-      const up = await new WP(site).uploadMedia(img, `${draft.slug || slugify(kw.phrase)}.png`, "image/png", draft.title);
-      mediaId = up.id;
-      imgUrl = up.url;
-    }
-  } catch {
-    /* image is best-effort; the article still ships */
-  }
+  const img = await attachImage(site, draft.title, draft.imagePrompt, draft.slug || slugify(kw.phrase));
+  const mediaId = img?.id ?? null;
+  const imgUrl = img?.url ?? null;
 
   const status = site.publish_mode === "autopilot" ? "approved" : "pending_review";
   const row = must(

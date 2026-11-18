@@ -96,10 +96,10 @@ export function ArticleEditor({ a }: { a: Article }) {
 
       <div className="actionbar">
         <button disabled={busy} onClick={() => patch()}>Save</button>
-        {a.status !== "approved" && a.status !== "published" && <button className="primary" disabled={busy} onClick={() => patch({ status: "approved" })}>Approve{date ? ` for ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}</button>}
+        {a.status !== "approved" && a.status !== "published" && <button className="green" disabled={busy} onClick={() => patch({ status: "approved" })}>Approve{date ? ` for ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}</button>}
         {a.status === "approved" && <button disabled={busy} onClick={() => patch({ status: "pending_review" })}>Back to review</button>}
         {a.status !== "published" && <button className="danger" disabled={busy} onClick={() => patch({ status: "rejected" })}>Reject</button>}
-        {!locked && <button disabled={busy} onClick={publishNow}>{a.kind === "refresh" ? "Update live post now" : "Publish now"}</button>}
+        {!locked && <button className="blue" disabled={busy} onClick={publishNow}>{a.kind === "refresh" ? "Update live post now" : "Publish now"}</button>}
         <span className="muted" style={{ marginLeft: "auto" }}>{msg}</span>
       </div>
     </div>

@@ -1,11 +1,11 @@
 const MAP: Record<string, { label: string; cls: string }> = {
   pending_review: { label: "Needs review", cls: "attn" },
-  approved: { label: "Approved", cls: "solid" },
+  approved: { label: "Approved", cls: "blue" },
   published: { label: "Live", cls: "ok" },
   rejected: { label: "Rejected", cls: "" },
   failed: { label: "Failed", cls: "bad" },
   queued: { label: "Queued", cls: "" },
-  scheduled: { label: "Scheduled", cls: "solid" },
+  scheduled: { label: "Scheduled", cls: "blue" },
   drafted: { label: "Drafted", cls: "" },
   new: { label: "Unscheduled", cls: "" },
   skipped: { label: "Skipped", cls: "" },

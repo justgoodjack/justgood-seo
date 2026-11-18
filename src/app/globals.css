@@ -17,6 +17,8 @@
   --mark: #ffd53d;
   --mark-wash: #fff4c2;
   --mark-ink: #0d1b2e;
+  --blue: #1b4fd1;
+  --blue-wash: #dce7ff;
   --ok: #12755a;
   --ok-wash: #dbeee7;
   --bad: #b3261e;
@@ -45,6 +47,8 @@
     --btn: #e9eef4;
     --btn-ink: #0d1b2e;
     --btn-hover: #ffffff;
+    --blue: #8db1ff;
+    --blue-wash: #16264d;
     --ok: #52c9a0;
     --ok-wash: #12332a;
     --bad: #f28b82;
@@ -108,8 +112,13 @@ button.primary, .btn.primary { background: var(--btn); border-color: var(--btn);
 button.primary:hover, .btn.primary:hover { background: var(--btn-hover); border-color: var(--btn-hover); color: var(--btn-ink); }
 button.mark, .btn.mark { background: var(--mark); border-color: var(--mark); color: var(--mark-ink); }
 button.mark:hover, .btn.mark:hover { background: var(--mark); filter: brightness(.96); border-color: var(--mark); color: var(--mark-ink); }
-button.danger { color: var(--bad); }
+button.green, .btn.green { background: var(--ok); border-color: var(--ok); color: #fff; }
+button.green:hover, .btn.green:hover { background: var(--ok); filter: brightness(1.08); border-color: var(--ok); color: #fff; }
+button.blue, .btn.blue { background: var(--blue-wash); border-color: transparent; color: var(--blue); }
+button.blue:hover, .btn.blue:hover { background: var(--blue-wash); filter: brightness(.96); border-color: var(--blue); color: var(--blue); }
+button.danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
 button.danger:hover { background: var(--bad-wash); border-color: var(--bad); color: var(--bad); }
+.c-blue { color: var(--blue); } .c-ok { color: var(--ok); } .c-bad { color: var(--bad); }
 button.sm { padding: 6px 12px; font-size: 13px; }
 button:disabled { opacity: .55; cursor: progress; }
 .btn-spin::after { content: ""; width: 12px; height: 12px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite; }
@@ -127,7 +136,9 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
 .badge.attn { background: var(--mark); color: var(--mark-ink); border-color: var(--mark); }
 .badge.ok { background: var(--ok-wash); color: var(--ok); border-color: transparent; }
 .badge.bad { background: var(--bad-wash); color: var(--bad); border-color: transparent; }
-.badge.solid { background: var(--card); color: var(--ink); border-color: var(--ink); }
+.badge.blue { background: var(--blue-wash); color: var(--blue); border-color: transparent; }
+.badge.dark { background: var(--ink); color: var(--fog); border-color: var(--ink); }
+.badge.solid { background: var(--blue-wash); color: var(--blue); border-color: transparent; }
 
 /* home: the hook */
 .hook { font-size: clamp(38px, 7vw, 72px); max-width: 16ch; }

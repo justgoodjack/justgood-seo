@@ -38,14 +38,14 @@ export default async function Home() {
               <div>
                 <div className="row" style={{ gap: 12 }}>
                   <span className="name">{s.name}</span>
-                  <span className={`badge ${s.publish_mode === "autopilot" ? "attn" : ""}`}>{s.publish_mode === "autopilot" ? "Autopilot" : "Batch preview"}</span>
+                  <span className={`badge ${s.publish_mode === "autopilot" ? "dark" : "blue"}`}>{s.publish_mode === "autopilot" ? "Autopilot" : "Batch preview"}</span>
                 </div>
                 <div className="dom">{s.domain}</div>
               </div>
               <div className="mini">
                 <div><span className={`n ${n(s.id, "pending_review") ? "attn" : ""}`}>{n(s.id, "pending_review")}</span><div className="l">Review</div></div>
-                <div><div className="n">{n(s.id, "approved")}</div><div className="l">Approved</div></div>
-                <div><div className="n">{n(s.id, "published")}</div><div className="l">Live</div></div>
+                <div><div className="n c-blue">{n(s.id, "approved")}</div><div className="l">Approved</div></div>
+                <div><div className="n c-ok">{n(s.id, "published")}</div><div className="l">Live</div></div>
                 <div><div className="n">{kws.filter((k) => k.site_id === s.id && k.status === "scheduled").length}</div><div className="l">Queued</div></div>
               </div>
             </Link>

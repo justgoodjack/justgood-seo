@@ -38,7 +38,7 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
           <p className="eyebrow">{site.niche || "Blog"}</p>
           <div className="row" style={{ gap: 14, alignItems: "center" }}>
             <h1>{site.name}</h1>
-            <span className={`badge ${site.publish_mode === "autopilot" ? "attn" : ""}`}>{site.publish_mode === "autopilot" ? "Autopilot" : "Batch preview"}</span>
+            <span className={`badge ${site.publish_mode === "autopilot" ? "dark" : "blue"}`}>{site.publish_mode === "autopilot" ? "Autopilot" : "Batch preview"}</span>
           </div>
           <p className="lede"><a href={site.wp_url} target="_blank" rel="noreferrer" className="mono">{site.domain}</a>{nextUp && <> &nbsp;·&nbsp; next post goes live {fmtDate(nextUp)}</>}</p>
         </div>
@@ -46,8 +46,8 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
 
       <div className="strip">
         <div className="stat"><div className={`n ${review.length ? "attn" : ""}`}>{review.length}</div><div className="l">To review</div></div>
-        <div className="stat"><div className="n">{count("approved")}</div><div className="l">Approved</div></div>
-        <div className="stat"><div className="n">{count("published")}</div><div className="l">Live</div></div>
+        <div className="stat"><div className="n c-blue">{count("approved")}</div><div className="l">Approved</div></div>
+        <div className="stat"><div className="n c-ok">{count("published")}</div><div className="l">Live</div></div>
         <div className="stat"><div className="n">{queued}</div><div className="l">Topics queued</div></div>
       </div>
 
@@ -63,7 +63,7 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
             {review.map((x) => (
               <tr key={x.id}>
                 <td><Link href={`/articles/${x.id}`}>{x.title || "(untitled)"}</Link></td>
-                <td><span className="badge">{x.kind === "refresh" ? "Refresh" : "New"}</span></td>
+                <td><span className={`badge ${x.kind === "refresh" ? "blue" : ""}`}>{x.kind === "refresh" ? "Refresh" : "New"}</span></td>
                 <td>{fmtDate(x.publish_date)}</td>
                 <td className="num"><Link href={`/articles/${x.id}`} className="btn sm mark" style={{ textDecoration: "none" }}>Review</Link></td>
               </tr>

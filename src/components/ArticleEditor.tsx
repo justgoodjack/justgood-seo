@@ -51,6 +51,18 @@ export function ArticleEditor({ a }: { a: Article }) {
     setBusy(false); router.refresh();
     return res.ok;
   }
+  async function remove() {
+    const live = a.status === "published" && !!a.wp_post_id;
+    if (!window.confirm(live ? "Delete this article from the tool?" : "Delete this article? This can't be undone. Its topic goes back to your topic list, unscheduled.")) return;
+    let wp = false;
+    if (live) wp = window.confirm("This post is live on your blog.\n\nOK = also move it to the WordPress trash (it disappears from your site)\nCancel = leave it live on your blog");
+    setBusy(true);
+    const res = await fetch(`/api/articles/${a.id}${wp ? "?wp=1" : ""}`, { method: "DELETE" });
+    if (res.ok) { router.push(`/sites/${a.site_id}`); router.refresh(); return; }
+    const j = await res.json().catch(() => ({}));
+    setMsg("Couldn't delete: " + (j.error ?? res.status));
+    setBusy(false);
+  }
   async function publishNow() {
     if (!window.confirm("Publish this to WordPress right now?")) return;
     if (!(await patch())) return;
@@ -97,10 +109,12 @@ export function ArticleEditor({ a }: { a: Article }) {
       <div className="actionbar">
         <button disabled={busy} onClick={() => patch()}>Save</button>
         {a.status !== "approved" && a.status !== "published" && <button className="green" disabled={busy} onClick={() => patch({ status: "approved" })}>Approve{date ? ` for ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}</button>}
-        {a.status === "approved" && <button disabled={busy} onClick={() => patch({ status: "pending_review" })}>Back to review</button>}
-        {a.status !== "published" && <button className="danger" disabled={busy} onClick={() => patch({ status: "rejected" })}>Reject</button>}
+        {a.status === "approved" && <button className="mark" disabled={busy} onClick={() => patch({ status: "pending_review" })}>Disapprove</button>}
+        {a.status === "rejected" && <button disabled={busy} onClick={() => patch({ status: "pending_review" })}>Restore to review</button>}
+        {a.status !== "published" && a.status !== "rejected" && <button className="danger" disabled={busy} onClick={() => patch({ status: "rejected" })}>Reject</button>}
         {!locked && <button className="blue" disabled={busy} onClick={publishNow}>{a.kind === "refresh" ? "Update live post now" : "Publish now"}</button>}
-        <span className="muted" style={{ marginLeft: "auto" }}>{msg}</span>
+        <button className="danger" disabled={busy} onClick={remove} style={{ marginLeft: "auto" }}>Delete</button>
+        <span className="muted">{msg}</span>
       </div>
     </div>
   );

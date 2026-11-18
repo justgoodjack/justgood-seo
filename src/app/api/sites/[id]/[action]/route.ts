@@ -3,7 +3,7 @@ import { db, must } from "@/lib/db";
 import { WP } from "@/lib/wordpress";
 import { buildCalendar, mineKeywords } from "@/lib/keywords";
 import { syncExistingPosts } from "@/lib/linker";
-import { runGeneration, runPublishing } from "@/lib/pipeline";
+import { deleteArticle, runGeneration, runPublishing } from "@/lib/pipeline";
 import { syncGsc } from "@/lib/gsc";
 import { findOutreach, runGeoChecks, seedGeoPrompts } from "@/lib/geo";
 import { encrypt } from "@/lib/crypto";
@@ -42,6 +42,20 @@ export async function POST(req: NextRequest, { params }: Ctx) {
         if (body.wp_app_pass) patch.wp_app_pass_enc = encrypt(body.wp_app_pass);
         must(await db().from("sites").update(patch).eq("id", id).select("id"));
         return NextResponse.json({ ok: true });
+      }
+      case "delete-topics": {
+        let q = db().from("keywords").delete().eq("site_id", id);
+        if (body.scope === "unscheduled") q = q.eq("status", "new");
+        else if (Array.isArray(body.ids) && body.ids.length) q = q.in("id", body.ids);
+        else return NextResponse.json({ error: "Nothing selected" }, { status: 400 });
+        const rows = must(await q.select("id")) as unknown[];
+        return NextResponse.json({ deleted: rows.length });
+      }
+      case "delete-articles": {
+        const ids: string[] = Array.isArray(body.ids) ? body.ids : [];
+        if (!ids.length) return NextResponse.json({ error: "Nothing selected" }, { status: 400 });
+        for (const aid of ids) await deleteArticle(id, aid, false);
+        return NextResponse.json({ deleted: ids.length });
       }
       case "delete": {
         must(await db().from("sites").delete().eq("id", id).select("id"));

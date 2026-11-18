@@ -306,3 +306,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .dots { display: flex; justify-content: center; }
   .cal .dow { padding: 8px 2px; text-align: center; font-size: 10px; letter-spacing: 0; }
 }
+
+/* selectable lists */
+.listbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 18px; min-height: 52px; border-bottom: 1px solid var(--line-2); background: var(--sunk); font-size: 14px; }
+.chk { width: 17px; height: 17px; padding: 0; accent-color: var(--ink); cursor: pointer; vertical-align: middle; }
+td .sm.danger { opacity: .75; } tr:hover td .sm.danger { opacity: 1; }

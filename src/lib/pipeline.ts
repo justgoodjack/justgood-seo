@@ -242,3 +242,18 @@ export async function runPublishing(opts: { siteId?: string; limit?: number } = 
 }
 
 export { loadSite, generate as _generate };
+
+/** Delete an article from the tool. Optionally move the live WordPress post to the trash too. */
+export async function deleteArticle(siteId: string, articleId: string, trashWp = false): Promise<{ trashed: boolean }> {
+  const art = must(await db().from("articles").select("*").eq("id", articleId).eq("site_id", siteId).single()) as Article;
+  let trashed = false;
+  if (trashWp && art.wp_post_id && art.status === "published") {
+    await new WP(await loadSite(siteId)).trashPost(art.wp_post_id);
+    await db().from("internal_link_index").delete().eq("site_id", siteId).eq("wp_post_id", art.wp_post_id);
+    trashed = true;
+  }
+  must(await db().from("articles").delete().eq("id", articleId).select("id"));
+  // The topic goes back to the unscheduled pool instead of being rewritten automatically.
+  if (art.keyword_id) await db().from("keywords").update({ status: "new", scheduled_date: null }).eq("id", art.keyword_id);
+  return { trashed };
+}

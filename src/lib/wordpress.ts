@@ -102,6 +102,13 @@ export class WP {
     return { id: out.id, link: out.link };
   }
 
+  /** Move a post to the WordPress trash (recoverable there for 30 days). */
+  async trashPost(id: number) {
+    const res = await this.req(`/wp/v2/posts/${id}`, { method: "DELETE" });
+    if (res.status === 404) return; // already gone
+    await this.json(res);
+  }
+
   async getPostRaw(id: number) {
     return this.json<{ id: number; link: string; title: { raw: string }; content: { raw: string } }>(
       await this.req(`/wp/v2/posts/${id}`, {}, "?context=edit"),

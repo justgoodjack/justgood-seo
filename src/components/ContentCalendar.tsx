@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 
-export interface CalItem { date: string; label: string; status: string; href?: string }
+export interface CalItem { id: string; kind: "article" | "topic"; date: string; label: string; status: string; href?: string }
 
 const STATUS: Record<string, { cls: string; name: string }> = {
   pending_review: { cls: "attn", name: "Needs review" },
@@ -18,7 +19,17 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const key = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function ContentCalendar({ items, today, list }: { items: CalItem[]; today: string; list: ReactNode }) {
+export function ContentCalendar({ siteId, items, today, list }: { siteId: string; items: CalItem[]; today: string; list: ReactNode }) {
+  const router = useRouter();
+  const [err, setErr] = useState("");
+  async function remove(it: CalItem) {
+    if (!window.confirm(it.kind === "topic" ? `Delete the topic "${it.label}"?` : `Delete "${it.label}" from this tool?${it.status === "published" ? " The live post stays on your blog." : ""}`)) return;
+    setErr("");
+    const res = it.kind === "topic"
+      ? await fetch(`/api/sites/${siteId}/delete-topics`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: [it.id] }) })
+      : await fetch(`/api/articles/${it.id}`, { method: "DELETE" });
+    if (!res.ok) setErr("Couldn't delete that. Try again."); else router.refresh();
+  }
   const [view, setView] = useState<"calendar" | "list">("calendar");
   const [y0, m0] = today.split("-").map(Number);
   const [ym, setYm] = useState({ y: y0, m: m0 - 1 });
@@ -83,12 +94,16 @@ export function ContentCalendar({ items, today, list }: { items: CalItem[]; toda
 
           <div className="card" style={{ marginTop: 14 }}>
             <p className="railtitle">{new Date(sel + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
+            {err && <p className="muted" style={{ color: "var(--bad)" }}>{err}</p>}
             {selItems.length === 0 ? <p className="muted" style={{ margin: 0 }}>{inMonth === 0 ? "Nothing is scheduled this month." : "Nothing scheduled for this day."}</p> : (
               <div style={{ display: "grid", gap: 8 }}>
                 {selItems.map((it, i) => (
                   <div key={i} className="row between" style={{ gap: 12 }}>
                     <span style={{ fontWeight: 600 }}>{it.href ? <Link href={it.href}>{it.label}</Link> : it.label}</span>
-                    <span className={`badge ${STATUS[it.status]?.cls === "topic" ? "blue" : STATUS[it.status]?.cls ?? ""}`}>{STATUS[it.status]?.name ?? it.status}</span>
+                    <span className="row" style={{ gap: 8 }}>
+                      <span className={`badge ${STATUS[it.status]?.cls === "topic" ? "blue" : STATUS[it.status]?.cls ?? ""}`}>{STATUS[it.status]?.name ?? it.status}</span>
+                      <button className="sm danger" onClick={() => remove(it)}>Delete</button>
+                    </span>
                   </div>
                 ))}
               </div>

@@ -4,6 +4,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { SettingsForm } from "@/components/SettingsForm";
 import { Badge, fmtDate } from "@/components/Badge";
 import { ContentCalendar, type CalItem } from "@/components/ContentCalendar";
+import { ArticlesList, TopicsList } from "@/components/Lists";
 import type { Article, Keyword, Site } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -32,8 +33,8 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
   const fresh = articles.length === 0 && keywords.length === 0;
   const written = new Set(articles.map((x) => x.keyword_id).filter(Boolean));
   const calItems: CalItem[] = [
-    ...articles.filter((x) => x.publish_date && x.status !== "rejected").map((x) => ({ date: x.publish_date as string, label: x.title || "Refresh", status: x.status, href: `/articles/${x.id}` })),
-    ...keywords.filter((k) => k.status === "scheduled" && k.scheduled_date && !written.has(k.id)).map((k) => ({ date: k.scheduled_date as string, label: k.phrase, status: "scheduled" })),
+    ...articles.filter((x) => x.publish_date && x.status !== "rejected").map((x) => ({ id: x.id, kind: "article" as const, date: x.publish_date as string, label: x.title || "Refresh", status: x.status, href: `/articles/${x.id}` })),
+    ...keywords.filter((k) => k.status === "scheduled" && k.scheduled_date && !written.has(k.id)).map((k) => ({ id: k.id, kind: "topic" as const, date: k.scheduled_date as string, label: k.phrase, status: "scheduled" })),
   ];
   const today = new Date().toISOString().slice(0, 10);
 
@@ -82,36 +83,12 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
 
       <section className="section" id="articles">
         <div className="section-head"><h2>All articles</h2><span className="hint">{articles.length} total</span></div>
-        <div className="card pad0 tablewrap">
-          <table><thead><tr><th>Title</th><th>Status</th><th>Date</th><th>Live</th></tr></thead><tbody>
-            {articles.map((x) => (
-              <tr key={x.id}>
-                <td><Link href={`/articles/${x.id}`}>{x.title || "(queued refresh)"}</Link></td>
-                <td><Badge status={x.status} /></td>
-                <td>{fmtDate(x.publish_date)}</td>
-                <td>{x.wp_link ? <a href={x.wp_link} target="_blank" rel="noreferrer">View ↗</a> : <span className="muted">-</span>}</td>
-              </tr>
-            ))}
-            {articles.length === 0 && <tr><td colSpan={4} className="empty">No articles yet. Open Setup below and write your first drafts.</td></tr>}
-          </tbody></table>
-        </div>
+        <ArticlesList siteId={id} rows={articles.map((x) => ({ id: x.id, title: x.title, status: x.status, publish_date: x.publish_date, wp_link: x.wp_link }))} />
       </section>
 
       <section className="section" id="keywords">
         <div className="section-head"><h2>Content calendar</h2><span className="hint">{keywords.length} topics</span></div>
-        <ContentCalendar items={calItems} today={today} list={
-        <div className="card pad0 tablewrap">
-          <table><thead><tr><th>Topic</th><th>Cluster</th><th>Intent</th><th className="num">Priority</th><th>Status</th><th>Date</th></tr></thead><tbody>
-            {keywords.map((k) => (
-              <tr key={k.id}>
-                <td style={{ fontWeight: 600 }}>{k.phrase}</td><td>{k.cluster}</td><td className="muted">{k.intent}</td>
-                <td className="num">{k.priority}</td><td><Badge status={k.status} /></td><td>{fmtDate(k.scheduled_date)}</td>
-              </tr>
-            ))}
-            {keywords.length === 0 && <tr><td colSpan={6} className="empty">No topics yet. Add seed topics in Settings, then run Find topics in Setup.</td></tr>}
-          </tbody></table>
-        </div>
-        } />
+        <ContentCalendar siteId={id} items={calItems} today={today} list={<TopicsList siteId={id} rows={keywords.map((k) => ({ id: k.id, phrase: k.phrase, cluster: k.cluster, intent: k.intent, priority: k.priority, status: k.status, scheduled_date: k.scheduled_date }))} />} />
       </section>
 
       <section className="section" id="setup">

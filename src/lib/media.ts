@@ -29,8 +29,7 @@ export async function findYouTubeVideo(query: string): Promise<{ id: string; tit
   return item ? { id: item.id.videoId, title: item.snippet.title } : null;
 }
 
-/** Free stock photo fallback (Pexels). Returns bytes plus a credit line for alt text. */
-export async function findStockPhoto(query: string): Promise<{ bytes: Buffer; credit: string } | null> {
+async function pexels(query: string): Promise<{ bytes: Buffer; credit: string } | null> {
   const key = env("PEXELS_API_KEY", false);
   if (!key) return null;
   const q = new URLSearchParams({ query: query.slice(0, 100), per_page: "5", orientation: "landscape" });
@@ -42,4 +41,22 @@ export async function findStockPhoto(query: string): Promise<{ bytes: Buffer; cr
   const img = await fetch(src);
   if (!img.ok) return null;
   return { bytes: Buffer.from(await img.arrayBuffer()), credit: `Photo by ${photo.photographer} on Pexels` };
+}
+
+async function pixabay(query: string): Promise<{ bytes: Buffer; credit: string } | null> {
+  const key = env("PIXABAY_API_KEY", false);
+  if (!key) return null;
+  const q = new URLSearchParams({ key, q: query.slice(0, 100), image_type: "photo", orientation: "horizontal", safesearch: "true", per_page: "5" });
+  const res = await fetch(`https://pixabay.com/api/?${q}`);
+  if (!res.ok) return null;
+  const hit = (await res.json()).hits?.[0];
+  if (!hit?.largeImageURL) return null;
+  const img = await fetch(hit.largeImageURL);
+  if (!img.ok) return null;
+  return { bytes: Buffer.from(await img.arrayBuffer()), credit: `Image by ${hit.user} on Pixabay` };
+}
+
+/** Free stock photo fallback: Pexels, then Pixabay. Returns bytes plus a credit line for alt text. */
+export async function findStockPhoto(query: string): Promise<{ bytes: Buffer; credit: string } | null> {
+  return (await pexels(query).catch(() => null)) ?? (await pixabay(query).catch(() => null));
 }

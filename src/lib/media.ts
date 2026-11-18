@@ -90,3 +90,51 @@ export async function findStockPhoto(queries: string | string[], exclude: string
   }
   return null;
 }
+
+export interface StockCandidate { stockId: string; thumb: string; full: string; credit: string }
+
+/** Search both stock sites and return thumbnails to choose from (nothing is downloaded). */
+export async function searchStock(queries: string[], page = 1, exclude: string[] = [], limit = 12): Promise<StockCandidate[]> {
+  const seen = new Set(exclude);
+  const pex: StockCandidate[] = [];
+  const pix: StockCandidate[] = [];
+  const pexKey = env("PEXELS_API_KEY", false);
+  const pixKey = env("PIXABAY_API_KEY", false);
+  for (const query of queries.filter((q) => q.trim())) {
+    if (pexKey) {
+      const q = new URLSearchParams({ query: query.slice(0, 100), per_page: "12", orientation: "landscape", page: String(page) });
+      const res = await fetch(`https://api.pexels.com/v1/search?${q}`, { headers: { Authorization: pexKey } }).catch(() => null);
+      if (res?.ok) {
+        for (const p of (await res.json()).photos ?? []) {
+          const id = `pexels:${p.id}`;
+          if (!seen.has(id) && !pex.some((x) => x.stockId === id)) pex.push({ stockId: id, thumb: p.src.medium, full: p.src.large2x ?? p.src.large, credit: `Photo by ${p.photographer} on Pexels` });
+        }
+      }
+    }
+    if (pixKey) {
+      const q = new URLSearchParams({ key: pixKey, q: query.slice(0, 100), image_type: "photo", orientation: "horizontal", safesearch: "true", per_page: "12", page: String(page) });
+      const res = await fetch(`https://pixabay.com/api/?${q}`).catch(() => null);
+      if (res?.ok) {
+        for (const h of (await res.json()).hits ?? []) {
+          const id = `pixabay:${h.id}`;
+          if (h.largeImageURL && !seen.has(id) && !pix.some((x) => x.stockId === id)) pix.push({ stockId: id, thumb: h.webformatURL, full: h.largeImageURL, credit: `Image by ${h.user} on Pixabay` });
+        }
+      }
+    }
+    if (pex.length + pix.length >= limit) break;
+  }
+  const out: StockCandidate[] = [];
+  for (let i = 0; out.length < limit && (i < pex.length || i < pix.length); i++) {
+    if (pex[i]) out.push(pex[i]);
+    if (out.length < limit && pix[i]) out.push(pix[i]);
+  }
+  return out;
+}
+
+export async function downloadStock(url: string): Promise<Buffer> {
+  const host = new URL(url).hostname;
+  if (!/(^|\.)(pexels\.com|pixabay\.com)$/.test(host)) throw new Error("Not a Pexels or Pixabay image URL");
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`Image download failed (${r.status})`);
+  return Buffer.from(await r.arrayBuffer());
+}

@@ -3,8 +3,8 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   return (
     <div className="authwrap">
       <form action="/api/login" method="post" className="card authcard formcard">
-        <p className="eyebrow">Editor's desk</p>
-        <h1>Welcome back</h1>
+        <p className="eyebrow">Sign in</p>
+        <h1>Back to work.</h1>
         <p className="lede" style={{ fontSize: 15 }}>Sign in to review drafts and keep your blogs on schedule.</p>
         <label>Password</label>
         <input type="password" name="password" autoFocus required />

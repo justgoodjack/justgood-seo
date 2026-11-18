@@ -3,6 +3,7 @@ import { db, must } from "@/lib/db";
 import { ActionButton } from "@/components/ActionButton";
 import { SettingsForm } from "@/components/SettingsForm";
 import { Badge, fmtDate } from "@/components/Badge";
+import { ContentCalendar, type CalItem } from "@/components/ContentCalendar";
 import type { Article, Keyword, Site } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,12 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
   const queued = keywords.filter((k) => k.status === "scheduled").length;
   const nextUp = articles.filter((x) => x.status === "approved" && x.publish_date).map((x) => x.publish_date as string).sort()[0];
   const fresh = articles.length === 0 && keywords.length === 0;
+  const written = new Set(articles.map((x) => x.keyword_id).filter(Boolean));
+  const calItems: CalItem[] = [
+    ...articles.filter((x) => x.publish_date && x.status !== "rejected").map((x) => ({ date: x.publish_date as string, label: x.title || "Refresh", status: x.status, href: `/articles/${x.id}` })),
+    ...keywords.filter((k) => k.status === "scheduled" && k.scheduled_date && !written.has(k.id)).map((k) => ({ date: k.scheduled_date as string, label: k.phrase, status: "scheduled" })),
+  ];
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <>
@@ -92,6 +99,7 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
 
       <section className="section" id="keywords">
         <div className="section-head"><h2>Content calendar</h2><span className="hint">{keywords.length} topics</span></div>
+        <ContentCalendar items={calItems} today={today} list={
         <div className="card pad0 tablewrap">
           <table><thead><tr><th>Topic</th><th>Cluster</th><th>Intent</th><th className="num">Priority</th><th>Status</th><th>Date</th></tr></thead><tbody>
             {keywords.map((k) => (
@@ -103,6 +111,7 @@ export default async function SitePage({ params }: { params: Promise<{ id: strin
             {keywords.length === 0 && <tr><td colSpan={6} className="empty">No topics yet. Add seed topics in Settings, then run Find topics in Setup.</td></tr>}
           </tbody></table>
         </div>
+        } />
       </section>
 
       <section className="section" id="setup">

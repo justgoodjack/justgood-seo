@@ -6,7 +6,13 @@ export async function middleware(req: NextRequest) {
   // Cron routes authenticate with CRON_SECRET inside the handler; login is public.
   if (p.startsWith("/api/cron") || p === "/login" || p === "/api/login") return NextResponse.next();
 
-  const ok = req.cookies.get(COOKIE)?.value === (await sessionToken());
+  let expected: string;
+  try {
+    expected = await sessionToken();
+  } catch (e) {
+    return new NextResponse(`Server misconfigured: ${(e as Error).message}. Add it in Vercel > Settings > Environment Variables, then redeploy.`, { status: 500 });
+  }
+  const ok = req.cookies.get(COOKIE)?.value === expected;
   if (ok) return NextResponse.next();
   if (p.startsWith("/api/")) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const url = req.nextUrl.clone();

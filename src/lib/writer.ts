@@ -19,6 +19,7 @@ Hard rules:
 - GEO structure: open every H2 section with a direct, self-contained 2-sentence answer, then expand. Include at least one HTML comparison <table> where it fits. End with a visible FAQ section (H2 "Frequently Asked Questions", each question an H3 with a short answer).
 - Cite primary sources inline with <a href> links to the real source pages you found. Link text must be descriptive.
 - Output clean semantic HTML only for the body: h2, h3, p, ul, ol, li, table, strong, em, a, blockquote. No h1, no <html>/<body>, no inline styles, no scripts, no markdown.
+- Insert exactly 2 image placeholders as HTML comments in the form <!--IMG: short concrete visual description, no text in image--> directly after the opening answer of two different H2 sections. Never write <img> tags yourself.
 - No filler intros ("In today's fast-paced world"), no AI-sounding clichés, no em dashes.`;
 
 function stripUnsafe(html: string): string {

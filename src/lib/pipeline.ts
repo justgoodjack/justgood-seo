@@ -14,7 +14,7 @@ async function loadSite(id: string): Promise<Site> {
 }
 
 /** Featured image: Cloudflare AI first, Pexels stock photo as fallback. Uploaded to the WP media library. */
-export async function attachImage(site: Site, title: string, imagePrompt: string, slug: string): Promise<{ id: number; url: string; source: string } | null> {
+export async function attachImage(site: Site, title: string, imagePrompt: string, slug: string, stockQuery?: string): Promise<{ id: number; url: string; source: string } | null> {
   const wp = new WP(site);
   try {
     const ai = await generateImage(imagePrompt || `${title}, ${site.image_style}`);
@@ -24,7 +24,7 @@ export async function attachImage(site: Site, title: string, imagePrompt: string
     }
   } catch { /* fall through to stock */ }
   try {
-    const stock = await findStockPhoto(title);
+    const stock = await findStockPhoto(stockQuery ?? title);
     if (stock) {
       const up = await wp.uploadMedia(stock.bytes, `${slug}.jpg`, "image/jpeg", `${title} (${stock.credit})`);
       return { ...up, source: "stock" };
@@ -33,11 +33,28 @@ export async function attachImage(site: Site, title: string, imagePrompt: string
   return null;
 }
 
+/** Replace <!--IMG: description--> placeholders with real uploaded images. Unresolved ones are removed. */
+export async function fillInlineImages(site: Site, html: string, title: string, slug: string, max = 2): Promise<string> {
+  const re = /<!--\s*IMG:\s*([\s\S]*?)-->/g;
+  const found = [...html.matchAll(re)].slice(0, max);
+  let out = html;
+  let n = 0;
+  for (const m of found) {
+    n++;
+    const desc = m[1].trim().slice(0, 200);
+    const img = await attachImage(site, desc, `${desc}, ${site.image_style}`, `${slug}-${n}`, `${desc} ${site.niche}`.trim()).catch(() => null);
+    const fig = img ? `<figure class="wp-block-image"><img src="${img.url}" alt="${desc.replace(/"/g, "&quot;")}" loading="lazy" /></figure>` : "";
+    out = out.replace(m[0], fig);
+  }
+  return out.replace(re, "");
+}
+
 /** Draft one new article for a scheduled keyword (+ featured image uploaded to WP media). */
 export async function generateForKeyword(site: Site, kw: Keyword): Promise<string> {
   const links = await relatedLinks(site.id, kw.phrase, 5).catch(() => []);
   const draft = await writeArticle(site, kw.phrase, links);
 
+  draft.html = await fillInlineImages(site, draft.html, draft.title, draft.slug || slugify(kw.phrase));
   const img = await attachImage(site, draft.title, draft.imagePrompt, draft.slug || slugify(kw.phrase));
   const mediaId = img?.id ?? null;
   const imgUrl = img?.url ?? null;
@@ -76,6 +93,7 @@ export async function generateRefresh(site: Site, art: Article): Promise<void> {
     links,
     `This is a REFRESH of an existing post that is losing search performance (${art.notes ?? ""}). Keep the topic and the same intent, but update facts with fresh grounded sources, fix gaps, tighten the structure, and improve the opening answers. Current post text for reference:\n${strip(cur.content.raw).slice(0, 6000)}`,
   );
+  draft.html = await fillInlineImages(site, draft.html, draft.title, slugify(draft.title));
   const status = site.publish_mode === "autopilot" ? "approved" : "pending_review";
   must(
     await db().from("articles").update({

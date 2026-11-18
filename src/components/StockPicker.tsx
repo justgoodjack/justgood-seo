@@ -44,24 +44,24 @@ export function StockPicker({ articleId }: { articleId: string }) {
 
   return (
     <div style={{ width: "100%" }}>
-      <label>Stock photos: search yourself, or leave blank and the AI chooses the search</label>
-      <div className="row">
-        <input style={{ flex: 1, minWidth: 200 }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. community volunteers, protest crowd" onKeyDown={(e) => e.key === "Enter" && search(false)} />
-        <button disabled={busy} onClick={() => search(false)}>{busy ? "Working..." : "Find stock photos"}</button>
+      <label style={{ marginTop: 0 }}>Search (blank lets the AI choose)</label>
+      <div style={{ display: "grid", gap: 8 }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. community volunteers, protest crowd" onKeyDown={(e) => e.key === "Enter" && search(false)} />
+        <button disabled={busy} className={busy ? "btn-spin" : ""} onClick={() => search(false)}>{busy ? "Searching" : "Find stock photos"}</button>
       </div>
       {queries.length > 0 && <p className="muted">Searched: {queries.join(" / ")}</p>}
       {cands.length > 0 && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 8, margin: "8px 0" }}>
+          <div className="thumbs">
             {cands.map((c) => (
-              <button key={c.stockId} onClick={() => setSel(c)} title={c.credit} style={{ padding: 0, overflow: "hidden", borderWidth: 3, borderColor: sel?.stockId === c.stockId ? "var(--accent)" : "var(--line)" }}>
-                <img src={c.thumb} alt={c.credit} style={{ width: "100%", height: 100, objectFit: "cover", display: "block" }} />
+              <button key={c.stockId} onClick={() => setSel(c)} title={c.credit} className={`thumb ${sel?.stockId === c.stockId ? "sel" : ""}`}>
+                <img src={c.thumb} alt={c.credit} />
               </button>
             ))}
           </div>
           <div className="row">
-            <button className="primary" disabled={!sel || busy} onClick={use}>{sel ? "Use selected photo" : "Click a photo to select it"}</button>
-            <button disabled={busy} onClick={() => search(true)}>Show more</button>
+            <button className="primary sm" disabled={!sel || busy} onClick={use}>{sel ? "Use this photo" : "Pick a photo"}</button>
+            <button className="sm" disabled={busy} onClick={() => search(true)}>Show more</button>
           </div>
         </>
       )}

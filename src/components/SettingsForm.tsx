@@ -25,7 +25,7 @@ export function SettingsForm({ site }: { site: Site }) {
     router.refresh();
   }
   return (
-    <form onSubmit={save} className="card">
+    <form onSubmit={save} className="card formcard">
       <div className="grid2">
         <div><label>WordPress URL (must start with https://)</label><input name="wp_url" defaultValue={site.wp_url} /></div>
         <div><label>WordPress username</label><input name="wp_user" defaultValue={site.wp_user} /></div>
@@ -48,7 +48,7 @@ export function SettingsForm({ site }: { site: Site }) {
       <label>Brand voice and rules</label><textarea name="voice_prompt" defaultValue={site.voice_prompt} />
       <label>Example post URLs (tone reference)</label><input name="example_urls" defaultValue={site.example_urls.join(", ")} />
       <label>Image style</label><input name="image_style" defaultValue={site.image_style} />
-      <p className="row"><button className="primary">Save settings</button><span className="muted">{msg}</span></p>
+      <p className="row" style={{ marginTop: 20 }}><button className="primary">Save settings</button><span className="muted">{msg}</span></p>
     </form>
   );
 }

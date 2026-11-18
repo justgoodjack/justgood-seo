@@ -11,6 +11,7 @@ export function ArticleEditor({ a }: { a: Article }) {
   const [date, setDate] = useState(a.publish_date ?? "");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showCode, setShowCode] = useState(false);
   const router = useRouter();
   const locked = a.status === "published" && a.kind === "new";
 
@@ -33,25 +34,39 @@ export function ArticleEditor({ a }: { a: Article }) {
 
   return (
     <div>
-      <div className="card">
-        <label>Title</label><input value={t} onChange={(e) => setT(e.target.value)} />
+      <div className="card formcard">
+        <label>Title</label>
+        <input className="titleinput" value={t} onChange={(e) => setT(e.target.value)} />
         <div className="grid2">
-          <div><label>Slug</label><input value={slug} onChange={(e) => setSlug(e.target.value)} /></div>
-          <div><label>Publish date</label><input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+          <div><label>URL slug</label><input value={slug} onChange={(e) => setSlug(e.target.value)} /></div>
+          <div><label>Goes live on</label><input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
         </div>
-        <label>Meta description ({meta.length}/155)</label><input value={meta} onChange={(e) => setMeta(e.target.value)} />
-        <label>Body HTML</label><textarea style={{ minHeight: 320, fontFamily: "monospace", fontSize: 13 }} value={html} onChange={(e) => setHtml(e.target.value)} />
-        <p className="row">
-          <button disabled={busy} onClick={() => patch()}>Save</button>
-          {a.status !== "approved" && a.status !== "published" && <button className="primary" disabled={busy} onClick={() => patch({ status: "approved" })}>Approve (publishes on {date || "its date"})</button>}
-          {a.status === "approved" && <button disabled={busy} onClick={() => patch({ status: "pending_review" })}>Move back to review</button>}
-          {a.status !== "published" && <button disabled={busy} onClick={() => patch({ status: "rejected" })}>Reject</button>}
-          {!locked && <button disabled={busy} onClick={publishNow}>{a.kind === "refresh" ? "Update live post now" : "Publish now"}</button>}
-          <span className="muted">{msg}</span>
-        </p>
+        <label>Meta description <span style={{ color: meta.length > 160 ? "var(--bad)" : "var(--ink-3)", textTransform: "none", letterSpacing: 0 }}>({meta.length}/155)</span></label>
+        <input value={meta} onChange={(e) => setMeta(e.target.value)} />
+        <div className="row between" style={{ marginTop: 16 }}>
+          <label style={{ margin: 0 }}>Article HTML</label>
+          <button className="sm" onClick={() => setShowCode(!showCode)}>{showCode ? "Hide code" : "Edit HTML"}</button>
+        </div>
+        {showCode && <textarea className="codearea" style={{ marginTop: 8 }} value={html} onChange={(e) => setHtml(e.target.value)} />}
       </div>
-      <h2>Preview</h2>
-      <div className="preview">{a.featured_img_url && <img src={a.featured_img_url} alt="" />}<h1>{t}</h1><div dangerouslySetInnerHTML={{ __html: html }} /></div>
+
+      <div className="actionbar">
+        <button disabled={busy} onClick={() => patch()}>Save</button>
+        {a.status !== "approved" && a.status !== "published" && <button className="primary" disabled={busy} onClick={() => patch({ status: "approved" })}>Approve{date ? ` for ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}</button>}
+        {a.status === "approved" && <button disabled={busy} onClick={() => patch({ status: "pending_review" })}>Back to review</button>}
+        {a.status !== "published" && <button className="danger" disabled={busy} onClick={() => patch({ status: "rejected" })}>Reject</button>}
+        {!locked && <button disabled={busy} onClick={publishNow}>{a.kind === "refresh" ? "Update live post now" : "Publish now"}</button>}
+        <span className="muted" style={{ marginLeft: "auto" }}>{msg}</span>
+      </div>
+
+      <section className="section" style={{ marginTop: 36 }}>
+        <div className="section-head"><h2>Reader preview</h2><span className="hint">How it will read on your blog</span></div>
+        <div className="reader"><div className="inner">
+          {a.featured_img_url && <img className="cover" src={a.featured_img_url} alt="" />}
+          <h1>{t}</h1>
+          <div dangerouslySetInnerHTML={{ __html: html }} />
+        </div></div>
+      </section>
     </div>
   );
 }

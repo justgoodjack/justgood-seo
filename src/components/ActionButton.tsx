@@ -2,9 +2,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function ActionButton({ url, label, body, primary, confirm: ask, reload }: { url: string; label: string; body?: unknown; primary?: boolean; confirm?: string; reload?: boolean }) {
+export function ActionButton({ url, label, body, primary, danger, confirm: ask, reload }: { url: string; label: string; body?: unknown; primary?: boolean; danger?: boolean; confirm?: string; reload?: boolean }) {
   const [busy, setBusy] = useState(false);
-  const [out, setOut] = useState<string | null>(null);
+  const [out, setOut] = useState<{ ok: boolean; text: string } | null>(null);
   const router = useRouter();
   async function run() {
     if (ask && !window.confirm(ask)) return;
@@ -14,15 +14,15 @@ export function ActionButton({ url, label, body, primary, confirm: ask, reload }
       const text = await res.text();
       let pretty = text;
       try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch {}
-      setOut(res.ok ? pretty : `Error ${res.status}: ${pretty}`);
+      setOut({ ok: res.ok, text: res.ok ? pretty : `Error ${res.status}\n${pretty.slice(0, 600)}` });
       if (res.ok && reload) setTimeout(() => window.location.reload(), 1200); else router.refresh();
-    } catch (e) { setOut(String(e)); }
+    } catch (e) { setOut({ ok: false, text: String(e) }); }
     setBusy(false);
   }
   return (
-    <span>
-      <button className={primary ? "primary" : ""} onClick={run} disabled={busy}>{busy ? "Working..." : label}</button>
-      {out && <pre className="out">{out}</pre>}
+    <span style={{ display: "contents" }}>
+      <button className={`${primary ? "primary" : ""} ${danger ? "danger" : ""} ${busy ? "btn-spin" : ""}`} onClick={run} disabled={busy}>{busy ? "Working" : label}</button>
+      {out && <pre className={`result ${out.ok ? "ok" : "err"}`} style={{ flexBasis: "100%" }}>{out.text}</pre>}
     </span>
   );
 }

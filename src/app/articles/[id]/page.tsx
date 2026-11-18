@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { db, must } from "@/lib/db";
-import { StockPicker } from "@/components/StockPicker";
 import { ActionButton } from "@/components/ActionButton";
+import { StockPicker } from "@/components/StockPicker";
 import { ArticleEditor } from "@/components/ArticleEditor";
+import { Badge } from "@/components/Badge";
 import type { Article } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -10,13 +11,45 @@ export const dynamic = "force-dynamic";
 export default async function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const a = must(await db().from("articles").select("*").eq("id", id).single()) as Article;
+  const queued = a.status === "queued";
   return (
     <>
-      <p><Link href={`/sites/${a.site_id}`}>Back to blog</Link></p>
-      <div className="row"><h1 style={{ margin: 0 }}>{a.kind === "refresh" ? "Refresh draft" : "Draft"}</h1><span className="pill">{a.status}</span></div>
-      {a.notes && <p className="muted">Note: {a.notes}</p>}
-      {a.status === "queued" ? <p className="card">Waiting for the generator. It runs nightly, or use Generate now on the blog page.</p> : <><div className="card"><div className="row" style={{ alignItems: "flex-start", gap: 16 }}>{a.featured_img_url ? <a href={a.featured_img_url} target="_blank" rel="noreferrer"><img src={a.featured_img_url} alt="Featured image preview" style={{ width: 280, maxWidth: "100%", borderRadius: 8, display: "block" }} /></a> : <div className="muted" style={{ width: 280, maxWidth: "100%", aspectRatio: "16 / 10", border: "1px dashed var(--line)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>No featured image yet</div>}<div><strong>Featured image</strong><p className="muted">Click the image to open it full size. Pick a source below; a new image replaces this one.</p><p className="row"><ActionButton url={`/api/articles/${a.id}/image`} body={{ mode: "ai" }} reload label={a.featured_img_url ? "Regenerate AI image" : "Generate AI image"} /></p><StockPicker articleId={a.id} /><p className="row"></p></div></div></div><ArticleEditor a={a} /></>}
-      {a.sources?.length > 0 && (<><h2>Grounding sources</h2><div className="card muted">{a.sources.map((s, i) => <div key={i}><a href={s.uri} target="_blank" rel="noreferrer">{s.title || s.uri}</a></div>)}</div></>)}
+      <Link href={`/sites/${a.site_id}`} className="crumb">← Back to blog</Link>
+      <div className="pagehead">
+        <div>
+          <p className="eyebrow">{a.kind === "refresh" ? "Refresh draft" : "Draft"}</p>
+          <div className="row" style={{ gap: 14 }}><h1 style={{ fontSize: "clamp(26px,4vw,36px)" }}>{a.title || "Untitled"}</h1><Badge status={a.status} /></div>
+          {a.notes && <p className="lede">Why this refresh: {a.notes}</p>}
+        </div>
+        {a.wp_link && <a className="btn" href={a.wp_link} target="_blank" rel="noreferrer">View live post ↗</a>}
+      </div>
+
+      {queued ? (
+        <div className="card" style={{ textAlign: "center", padding: 40 }}>
+          <h3>Waiting for the writer</h3>
+          <p className="lede" style={{ margin: "8px auto 0" }}>This refresh is queued. It's written during the nightly run, or use "Write drafts" on the blog page.</p>
+        </div>
+      ) : (
+        <div className="split">
+          <div><ArticleEditor a={a} /></div>
+          <aside className="rail">
+            <div className="card">
+              <p className="railtitle">Featured image</p>
+              {a.featured_img_url ? <a href={a.featured_img_url} target="_blank" rel="noreferrer"><img className="hero-img" src={a.featured_img_url} alt="Featured image preview" /></a> : <div className="hero-empty">No featured image yet</div>}
+              <div className="row" style={{ marginTop: 12 }}>
+                <ActionButton url={`/api/articles/${a.id}/image`} body={{ mode: "ai" }} reload label={a.featured_img_url ? "Regenerate with AI" : "Generate with AI"} />
+              </div>
+            </div>
+            <div className="card"><p className="railtitle">Stock photos</p><StockPicker articleId={a.id} /></div>
+            {a.sources?.length > 0 && (
+              <div className="card">
+                <p className="railtitle">Research sources</p>
+                <div style={{ display: "grid", gap: 6, fontSize: 13 }}>{a.sources.slice(0, 8).map((s, i) => <a key={i} href={s.uri} target="_blank" rel="noreferrer" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title || s.uri}</a>)}</div>
+              </div>
+            )}
+          </aside>
+        </div>
+      )}
     </>
   );
 }

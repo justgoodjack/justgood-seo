@@ -1,0 +1,25 @@
+:root { --bg:#f7f7f5; --fg:#1b1b1a; --muted:#6b6b66; --card:#fff; --line:#e4e4df; --accent:#1f5f4a; --warn:#a4491f; }
+@media (prefers-color-scheme: dark) { :root { --bg:#141413; --fg:#ecece8; --muted:#9a9a93; --card:#1d1d1b; --line:#2e2e2b; --accent:#5fbf9a; --warn:#e0895a; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif; }
+main { max-width:1040px; margin:0 auto; padding:20px 16px 80px; }
+a { color:var(--accent); }
+h1 { font-size:24px; margin:8px 0 16px; } h2 { font-size:17px; margin:28px 0 10px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:12px; }
+.row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.between { justify-content:space-between; }
+.muted { color:var(--muted); font-size:13px; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th,td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.03em; }
+button,.btn { font:inherit; padding:7px 12px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); cursor:pointer; text-decoration:none; display:inline-block; }
+button.primary,.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+button:disabled { opacity:.5; cursor:wait; }
+input,select,textarea { font:inherit; width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); }
+textarea { min-height:90px; } label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; } @media (max-width:640px){ .grid2 { grid-template-columns:1fr; } }
+.pill { font-size:12px; padding:2px 8px; border-radius:99px; border:1px solid var(--line); }
+.pill.ok { color:var(--accent); border-color:var(--accent); } .pill.bad { color:var(--warn); border-color:var(--warn); }
+pre.out { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px; overflow:auto; font-size:12px; max-height:260px; white-space:pre-wrap; }
+.preview { background:#fff; color:#111; border-radius:8px; padding:20px; border:1px solid var(--line); } .preview img { max-width:100%; }
+.tablewrap { overflow-x:auto; }

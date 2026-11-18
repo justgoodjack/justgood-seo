@@ -42,23 +42,50 @@ async function callOnce(model: string, o: GenOpts): Promise<GenResult> {
   return { text, sources };
 }
 
-/** Retries rate limits / overload, then falls back to the lighter model. */
+let discovered: string[] | null = null;
+
+/** Ask Google which models this key can call, newest stable flash first (names change often). */
+async function discoverModels(): Promise<string[]> {
+  if (discovered) return discovered;
+  const res = await fetch(`${BASE}/models?pageSize=200`, { headers: { "x-goog-api-key": env("GEMINI_API_KEY") } });
+  if (!res.ok) throw new Error(`Gemini model list ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const data = (await res.json()) as { models?: { name: string; supportedGenerationMethods?: string[] }[] };
+  const ver = (n: string) => parseFloat(n.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] ?? "0");
+  const names = (data.models ?? [])
+    .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+    .map((m) => m.name.replace(/^models\//, ""))
+    .filter((n) => /^gemini-[\d.]+-flash(-lite)?$/.test(n)); // stable aliases only
+  const rank = (n: string) => ver(n) * 10 - (n.endsWith("-lite") ? 1 : 0);
+  discovered = names.sort((a, b) => rank(b) - rank(a));
+  return discovered;
+}
+
+/** Retries rate limits / overload, falls back to other models, and auto-discovers valid model names on 404. */
 export async function generate(o: GenOpts): Promise<GenResult> {
-  const models = [env("GEMINI_MODEL", false) || "gemini-2.5-flash", env("GEMINI_FALLBACK_MODEL", false)].filter(Boolean);
-  let lastErr: unknown;
-  for (const model of models) {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        return await callOnce(model, o);
-      } catch (e) {
-        lastErr = e;
-        const status = (e as { status?: number }).status;
-        if (status === 429 || status === 503 || status === 500) await sleep(2000 * (attempt + 1));
-        else break; // non-retryable on this model
+  const configured = [env("GEMINI_MODEL", false), env("GEMINI_FALLBACK_MODEL", false)].filter(Boolean);
+  let models = configured.length ? configured : await discoverModels();
+  const errors: string[] = [];
+  for (let pass = 0; pass < 2; pass++) {
+    for (const model of models) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          return await callOnce(model, o);
+        } catch (e) {
+          const status = (e as { status?: number }).status;
+          if (attempt === 2 || !(status === 429 || status === 503 || status === 500)) {
+            errors.push(`${model}: ${(e as Error).message.slice(0, 160)}`);
+            break;
+          }
+          await sleep(2000 * (attempt + 1));
+        }
       }
     }
+    if (pass === 0 && errors.some((m) => m.includes(" 404"))) {
+      discovered = null;
+      models = (await discoverModels()).slice(0, 3); // configured names are stale: use what exists now
+    } else break;
   }
-  throw lastErr;
+  throw new Error(`All Gemini models failed. ${errors.slice(-3).join(" | ")}`);
 }
 
 export function parseJson<T>(text: string): T {

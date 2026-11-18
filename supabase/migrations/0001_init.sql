@@ -157,3 +157,12 @@ alter table geo_prompts enable row level security;
 alter table geo_checks enable row level security;
 alter table outreach_prospects enable row level security;
 alter table job_runs enable row level security;
+
+-- Newer Supabase projects do not auto-grant new tables to API roles. The app uses service_role only.
+grant usage on schema public to service_role;
+grant all on all tables in schema public to service_role;
+grant all on all sequences in schema public to service_role;
+grant execute on all functions in schema public to service_role;
+alter default privileges in schema public grant all on tables to service_role;
+alter default privileges in schema public grant all on sequences to service_role;
+alter default privileges in schema public grant execute on functions to service_role;

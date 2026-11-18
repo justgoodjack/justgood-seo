@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 interface Cand { stockId: string; thumb: string; full: string; credit: string }
 
@@ -12,7 +11,7 @@ export function StockPicker({ articleId }: { articleId: string }) {
   const [sel, setSel] = useState<Cand | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const router = useRouter();
+  const [applied, setApplied] = useState("");
 
   async function search(more: boolean) {
     setBusy(true); setMsg("");
@@ -35,8 +34,11 @@ export function StockPicker({ articleId }: { articleId: string }) {
     setBusy(true); setMsg("");
     const res = await fetch(`/api/articles/${articleId}/stock-pick`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ full: sel.full, credit: sel.credit }) });
     const j = await res.json();
-    setMsg(res.ok ? "Featured image updated" : j.error ?? "Failed");
-    if (res.ok) { setCands([]); setSel(null); router.refresh(); }
+    if (!res.ok) { setMsg("Error: " + (j.error ?? "Failed")); setBusy(false); return; }
+    setApplied(j.url);
+    setMsg("Saved to WordPress as the featured image. Reloading the page...");
+    setCands([]); setSel(null);
+    setTimeout(() => window.location.reload(), 1200);
     setBusy(false);
   }
 
@@ -63,7 +65,8 @@ export function StockPicker({ articleId }: { articleId: string }) {
           </div>
         </>
       )}
-      {msg && <p className="muted">{msg}</p>}
+      {applied && <p><img src={applied} alt="New featured image" style={{ width: 200, borderRadius: 8, display: "block" }} /></p>}
+      {msg && <p className="muted" style={msg.startsWith("Error") ? { color: "var(--warn)" } : undefined}>{msg}</p>}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function ActionButton({ url, label, body, primary, confirm: ask }: { url: string; label: string; body?: unknown; primary?: boolean; confirm?: string }) {
+export function ActionButton({ url, label, body, primary, confirm: ask, reload }: { url: string; label: string; body?: unknown; primary?: boolean; confirm?: string; reload?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [out, setOut] = useState<string | null>(null);
   const router = useRouter();
@@ -15,7 +15,7 @@ export function ActionButton({ url, label, body, primary, confirm: ask }: { url:
       let pretty = text;
       try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch {}
       setOut(res.ok ? pretty : `Error ${res.status}: ${pretty}`);
-      router.refresh();
+      if (res.ok && reload) setTimeout(() => window.location.reload(), 1200); else router.refresh();
     } catch (e) { setOut(String(e)); }
     setBusy(false);
   }

@@ -26,6 +26,7 @@ export function ArticleEditor({ a }: { a: Article }) {
   const [html, setHtml] = useState(a.html_body);
   const [date, setDate] = useState(a.publish_date ?? "");
   const [msg, setMsg] = useState("");
+  const [liveLink, setLiveLink] = useState("");
   const [busy, setBusy] = useState(false);
   const [adv, setAdv] = useState(false);
   const body = useRef<HTMLDivElement>(null);
@@ -69,7 +70,8 @@ export function ArticleEditor({ a }: { a: Article }) {
     setBusy(true);
     const res = await fetch(`/api/articles/${a.id}/publish`, { method: "POST" });
     const j = await res.json();
-    setMsg(res.ok ? "Published to WordPress" : "Couldn't publish: " + j.error);
+    setMsg(res.ok ? "Published and confirmed live on WordPress." : "Couldn't publish: " + j.error);
+    if (res.ok) setLiveLink(j.link);
     setBusy(false); router.refresh();
   }
 
@@ -108,13 +110,13 @@ export function ArticleEditor({ a }: { a: Article }) {
 
       <div className="actionbar">
         <button disabled={busy} onClick={() => patch()}>Save</button>
-        {a.status !== "approved" && a.status !== "published" && <button className="green" disabled={busy} onClick={() => patch({ status: "approved" })}>Approve{date ? ` for ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}</button>}
+        {a.status !== "approved" && a.status !== "published" && <button className="green" disabled={busy} onClick={async () => { if (await patch({ status: "approved" })) setMsg(date && date > new Date().toISOString().slice(0, 10) ? `Approved. It will publish automatically on ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}. Use Publish now to send it immediately.` : "Approved. It publishes at the next nightly run, or use Publish now."); }}>Approve{date ? ` for ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}</button>}
         {a.status === "approved" && <button className="mark" disabled={busy} onClick={() => patch({ status: "pending_review" })}>Disapprove</button>}
         {a.status === "rejected" && <button disabled={busy} onClick={() => patch({ status: "pending_review" })}>Restore to review</button>}
         {a.status !== "published" && a.status !== "rejected" && <button className="danger" disabled={busy} onClick={() => patch({ status: "rejected" })}>Reject</button>}
         {!locked && <button className="blue" disabled={busy} onClick={publishNow}>{a.kind === "refresh" ? "Update live post now" : "Publish now"}</button>}
         <button className="danger" disabled={busy} onClick={remove} style={{ marginLeft: "auto" }}>Delete</button>
-        <span className="muted">{msg}</span>
+        <span className="muted">{msg}{liveLink && <> <a href={liveLink} target="_blank" rel="noreferrer">View it live ↗</a></>}</span>
       </div>
     </div>
   );

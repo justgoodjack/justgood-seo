@@ -17,7 +17,8 @@ export default async function Settings({ params }: { params: Promise<{ id: strin
       <h3 className="subh">Connection checks</h3>
       <div className="card pad0">
         <div className="step"><span className="no">1</span><div><h3>Test the connection</h3><p>Confirm the WordPress login works and can publish.</p></div><span className="act"><ActionButton url={a("test-wp")} label="Run test" /></span></div>
-        <div className="step"><span className="no">2</span><div><h3>Index existing posts</h3><p>Read your current posts so new drafts can link to them. {linkCount} indexed so far.</p></div><span className="act"><ActionButton url={a("sync-posts")} label="Index posts" /></span></div>
+        <div className="step"><span className="no">2</span><div><h3>Send a test draft</h3><p>Creates one clearly labelled draft in WordPress (not published) to prove articles can reach your site.</p></div><span className="act"><ActionButton url={a("test-post")} label="Send test draft" /></span></div>
+        <div className="step"><span className="no">3</span><div><h3>Index existing posts</h3><p>Read your current posts so new drafts can link to them. {linkCount} indexed so far.</p></div><span className="act"><ActionButton url={a("sync-posts")} label="Index posts" /></span></div>
       </div>
 
       <h3 className="subh">Blog settings</h3>

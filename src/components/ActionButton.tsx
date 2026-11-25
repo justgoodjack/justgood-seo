@@ -18,6 +18,8 @@ function describe(action: string, d: Record<string, unknown>): Summary {
         `${plural(cats, "category")} found on the site`,
       ] };
     }
+    case "test-post":
+      return { title: "A test draft was created in WordPress", lines: [`Look for "SEO Engine test draft" under Posts, Drafts in your WordPress admin (post number ${d.id})`, "You can delete it from there. Nothing was published."] };
     case "sync-posts":
       return { title: `Indexed ${plural(num("indexedNow"), "post")}`, lines: [`${plural(num("totalOnSite"), "published post")} on your site`, ...(num("remaining") > 0 ? [`${num("remaining")} more to go. Run this again to continue.`] : ["Everything is indexed"])] };
     case "mine-keywords":

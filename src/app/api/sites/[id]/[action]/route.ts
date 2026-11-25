@@ -25,6 +25,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
         const cats = await wp.categories();
         return NextResponse.json({ ok: true, user: me.name, canPublish: me.canPublish, canUnfilteredHtml: me.canUnfiltered, categories: cats });
       }
+      case "test-post": return NextResponse.json({ ok: true, ...(await new WP(site).testDraft()) });
       case "sync-posts": return NextResponse.json(await syncExistingPosts(site, 40));
       case "mine-keywords": return NextResponse.json(await mineKeywords(site, body.seeds));
       case "build-calendar": return NextResponse.json(await buildCalendar(site, 30));

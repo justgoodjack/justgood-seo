@@ -25,15 +25,32 @@ export function PhotoDialog({ articleId, target, title, alt, onPick, onClose }: 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
 
-  const box = useRef<HTMLDivElement>(null);
-  // Lock page scroll while open and put focus in the dialog so it is the first thing you see and use.
+  const ref = useRef<HTMLDialogElement>(null);
+  const [place, setPlace] = useState<{ top: number; maxH: number } | null>(null);
+
+  // A native modal <dialog> is drawn by the browser in its own top layer, always centered on the screen,
+  // no matter what animation, transform or layout the page behind it has.
   useEffect(() => {
+    const d = ref.current;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    box.current?.focus();
-    return () => { document.body.style.overflow = prev; };
+    if (d && !d.open) d.showModal();
+    return () => { document.body.style.overflow = prev; if (d?.open) d.close(); };
   }, []);
-  useEffect(() => { const k = (e: KeyboardEvent) => e.key === "Escape" && onClose(); window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose]);
+
+  // Some tools show a site inside a pane that is as tall as the whole page and scrolls the outside instead.
+  // There, "the screen" is the entire article, so centre on the part you can actually see.
+  useEffect(() => {
+    const embedded = window.innerHeight > (window.screen.availHeight || window.screen.height) + 40;
+    if (!embedded || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((entries) => {
+      const r = entries[entries.length - 1].intersectionRect;
+      if (r.height > 120) setPlace({ top: r.top + r.height / 2, maxH: Math.max(240, r.height - 32) });
+    }, { threshold: Array.from({ length: 101 }, (_, i) => i / 100) });
+    io.observe(document.body);
+    return () => io.disconnect();
+  }, []);
+
   useEffect(() => { if (!file) { setPreview(""); return; } const u = URL.createObjectURL(file); setPreview(u); return () => URL.revokeObjectURL(u); }, [file]);
 
   const api = async (path: string, init: RequestInit) => {
@@ -77,8 +94,15 @@ export function PhotoDialog({ articleId, target, title, alt, onPick, onClose }: 
   // Rendered straight into <body> so no animated or transformed ancestor can displace it down the page.
   if (typeof document === "undefined") return null;
   return createPortal(
-    <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label="Change photo" tabIndex={-1} ref={box}>
+    <dialog
+      ref={ref}
+      className="modal"
+      aria-label="Change photo"
+      onCancel={(e) => { e.preventDefault(); onClose(); }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={place ? { top: place.top, bottom: "auto", margin: "0 auto", transform: "translateY(-50%)", maxHeight: place.maxH } : undefined}
+    >
+      <div className="modalbody">
         <div className="row between" style={{ marginBottom: 14 }}>
           <h2 style={{ fontSize: 22 }}>{target === "featured" ? "Change the featured photo" : "Change this photo"}</h2>
           <button className="sm" onClick={onClose}>Close</button>
@@ -131,7 +155,7 @@ export function PhotoDialog({ articleId, target, title, alt, onPick, onClose }: 
         )}
         {msg && <p className="result err" style={{ marginTop: 14 }}>{msg}</p>}
       </div>
-    </div>,
+    </dialog>,
     document.body,
   );
 }

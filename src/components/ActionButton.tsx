@@ -26,6 +26,17 @@ function describe(action: string, d: Record<string, unknown>): Summary {
       return { title: `Found ${plural(num("strong"), "new topic")} at priority 8 or higher`, lines: [...(num("added") > num("strong") ? [`${num("added") - num("strong")} lower-priority ideas were saved but are hidden`] : []), `Looked through ${num("candidates")} Google suggestions`, ...(num("similarSkipped") ? [`Skipped ${num("similarSkipped")} that were too similar to topics you already have`] : [])] };
     case "build-calendar":
       return num("scheduled") ? { title: `Scheduled ${plural(num("scheduled"), "topic")}`, lines: [`From ${d.firstDate} to ${d.lastDate}, filling the open days`, "No cluster is scheduled next to itself", ...(num("openDays") ? [`${plural(num("openDays"), "day")} left open: only that many priority 8+ topics were available. Find more topics.`] : []), ...(num("unavoidable") ? [`${num("unavoidable")} had to sit next to the same cluster because there wasn't enough variety.`] : [])] } : { title: "Nothing to schedule", lines: [num("openDays") ? "There are open days, but no unscheduled priority 8+ topics left. Find more topics." : "Every day in the next 30 days already has a post at this rhythm."] };
+    case "fill-gaps": {
+      const open = (d.stillOpen as string[] | undefined) ?? [];
+      const fmt = (x: string) => new Date(x + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const lines = [
+        ...(num("overdueMoved") ? [`${plural(num("overdueMoved"), "topic")} left behind in the past went back to the pool`] : []),
+        ...(num("doubleBooked") ? [`${plural(num("doubleBooked"), "double-booked day")} fixed`] : []),
+        ...(open.length ? [`Still empty: ${open.slice(0, 8).map(fmt).join(", ")}${open.length > 8 ? ` and ${open.length - 8} more` : ""}. There are no more priority 8+ topics to use. Find more topics, then fill again.`] : []),
+        ...(num("unavoidable") ? [`${num("unavoidable")} had to sit near the same cluster because there wasn't enough variety`] : []),
+      ];
+      return num("gaps") === 0 ? { title: "No gaps. Every day is covered.", lines } : { title: open.length ? `Filled ${num("filled")} of ${num("gaps")} empty days` : `Filled all ${num("filled")} empty days`, lines };
+    }
     case "rebalance-calendar":
       return num("total") < 2 ? { title: "Nothing to spread out", lines: ["You need at least two scheduled topics that haven't been written yet."] } : { title: num("moved") ? `Moved ${plural(num("moved"), "topic")} to new dates` : "Already well spread out", lines: [num("unavoidable") ? `${num("unavoidable")} still sit near the same cluster. There isn't enough variety left to avoid it.` : "No cluster sits next to itself"] };
     case "generate":

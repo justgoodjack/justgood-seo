@@ -11,10 +11,11 @@ const RHYTHMS = [
 
 const localToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 
-export function PlanControls({ siteId, cadence }: { siteId: string; cadence: number }) {
+export function PlanControls({ siteId, cadence, empty }: { siteId: string; cadence: number; empty: number }) {
   const [perMonth, setPerMonth] = useState(RHYTHMS.some((r) => r.perMonth === cadence) ? cadence : 30);
   return (
     <div className="row">
+      <ActionButton url={`/api/sites/${siteId}/fill-gaps`} label={empty > 0 ? `Fill ${empty} empty day${empty === 1 ? "" : "s"}` : "Check for gaps"} mark={empty > 0} body={() => ({ today: localToday() })} />
       <ActionButton url={`/api/sites/${siteId}/rebalance-calendar`} label="Spread clusters apart" />
       <select value={perMonth} onChange={(e) => setPerMonth(Number(e.target.value))} aria-label="Posting rhythm" style={{ width: "auto" }}>
         {RHYTHMS.map((r) => <option key={r.perMonth} value={r.perMonth}>{r.label}</option>)}

@@ -4,6 +4,7 @@ import { generate, parseJson } from "./gemini";
 import type { Site, Keyword } from "./types";
 import { similar, tokens } from "./similarity";
 import { MIN_PRIORITY } from "./priority";
+import { coverage, type CovItem } from "./coverage";
 
 /** Google Autocomplete (unofficial but free and long-stable). Seed + a..z expansion. */
 async function suggest(q: string): Promise<string[]> {
@@ -207,4 +208,52 @@ export async function rebalanceCalendar(site: Site) {
   let moved = 0;
   for (const { kw, date } of out) if (before.get(kw.id) !== date) { await db().from("keywords").update({ scheduled_date: date }).eq("id", kw.id); moved++; }
   return { moved, unavoidable, total: movable.length };
+}
+
+/**
+ * Repair the schedule so something is lined up for every day:
+ * topics left behind in the past and double-booked days go back to the pool, then every empty day
+ * from today to the end of the schedule (at least 30 days) gets the best topic that fits.
+ */
+export async function fillGaps(site: Site, opts: { today?: string } = {}) {
+  const today = validToday(opts.today);
+  const kws = must(await db().from("keywords").select("*").eq("site_id", site.id)) as Keyword[];
+  const arts = must(await db().from("articles").select("keyword_id,publish_date,status").eq("site_id", site.id).not("publish_date", "is", null)) as { keyword_id: string | null; publish_date: string; status: string }[];
+  const written = new Set(arts.map((a) => a.keyword_id).filter(Boolean) as string[]);
+
+  // 1. topics that are scheduled but not written: past ones and extras on a double-booked day go back to the pool
+  const unwritten = kws.filter((k) => k.status === "scheduled" && k.scheduled_date && !written.has(k.id));
+  const overdue = unwritten.filter((k) => (k.scheduled_date as string) < today);
+  const byDay = new Map<string, Keyword[]>();
+  for (const k of unwritten.filter((k) => (k.scheduled_date as string) >= today)) byDay.set(k.scheduled_date as string, [...(byDay.get(k.scheduled_date as string) ?? []), k]);
+  const extras: Keyword[] = [];
+  for (const list of byDay.values()) if (list.length > 1) extras.push(...[...list].sort((a, b) => b.priority - a.priority).slice(1));
+  const freed = new Set([...overdue, ...extras].map((k) => k.id));
+  for (const id of freed) await db().from("keywords").update({ status: "new", scheduled_date: null }).eq("id", id);
+
+  // 2. which days have nothing?
+  const items: CovItem[] = [
+    ...arts.filter((a) => a.status !== "rejected" && a.status !== "failed").map((a) => ({ date: a.publish_date, kind: "article" as const, status: a.status })),
+    ...unwritten.filter((k) => !freed.has(k.id)).map((k) => ({ date: k.scheduled_date as string, kind: "topic" as const, status: "scheduled" })),
+  ];
+  const gapDates = coverage(today, items).days.filter((d) => d.state === "empty").map((d) => d.date);
+
+  // 3. fill them, best priority first, never the same cluster twice in a row
+  const fixed = await fixedPlacements(site.id);
+  const pool = must(
+    await db().from("keywords").select("*").eq("site_id", site.id).eq("status", "new").gte("priority", MIN_PRIORITY)
+      .order("priority", { ascending: false }).order("trend_score", { ascending: false }).limit(400),
+  ) as Keyword[];
+  const { out, unavoidable } = assign(gapDates, pool, fixed, 1, true);
+  for (const { kw, date } of out) await db().from("keywords").update({ status: "scheduled", scheduled_date: date }).eq("id", kw.id);
+
+  const filledDates = new Set(out.map((o) => o.date));
+  return {
+    filled: out.length,
+    gaps: gapDates.length,
+    stillOpen: gapDates.filter((d) => !filledDates.has(d)),
+    overdueMoved: overdue.length,
+    doubleBooked: extras.length,
+    unavoidable,
+  };
 }

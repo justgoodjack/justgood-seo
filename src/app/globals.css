@@ -377,3 +377,12 @@ td:first-of-type a, .tablewrap td { min-width: 0; }
 .simrow.keep { border-top: 0; background: var(--ok-wash); cursor: default; }
 .simrow.locked { opacity: .6; cursor: default; }
 .simname { font-weight: 600; flex: 1; min-width: 0; }
+
+/* daily coverage */
+.cover { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; }
+.cv { height: 22px; border-radius: 5px; background: var(--sunk); border: 1px solid var(--line); }
+.cv.s-ready { background: var(--ok); border-color: var(--ok); }
+.cv.s-planned { background: var(--blue-wash); border-color: var(--blue); }
+.cv.s-empty { background: var(--bad-wash); border: 1.5px dashed var(--bad); }
+.cal .cell.gap { background: color-mix(in srgb, var(--bad-wash) 55%, var(--card)); }
+.opentag { font-size: 11px; font-weight: 700; color: var(--bad); padding-left: 4px; letter-spacing: .02em; }

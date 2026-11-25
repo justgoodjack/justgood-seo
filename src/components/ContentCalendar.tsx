@@ -19,7 +19,8 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const key = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function ContentCalendar({ siteId, items, today, list }: { siteId: string; items: CalItem[]; today: string; list: ReactNode }) {
+export function ContentCalendar({ siteId, items, today, list, gapDates = [] }: { siteId: string; items: CalItem[]; today: string; list: ReactNode; gapDates?: string[] }) {
+  const gaps = new Set(gapDates);
   const router = useRouter();
   const [err, setErr] = useState("");
   async function remove(it: CalItem) {
@@ -75,13 +76,14 @@ export function ContentCalendar({ siteId, items, today, list }: { siteId: string
                 const k = key(ym.y, ym.m, d);
                 const its = byDay.get(k) ?? [];
                 return (
-                  <button key={i} className={`cell ${k === sel ? "sel" : ""} ${k < today ? "past" : ""}`} onClick={() => setSel(k)} aria-label={`${k}, ${its.length} items`}>
+                  <button key={i} className={`cell ${k === sel ? "sel" : ""} ${k < today ? "past" : ""} ${gaps.has(k) ? "gap" : ""}`} onClick={() => setSel(k)} aria-label={`${k}, ${its.length} items`}>
                     <span className={`dn ${k === today ? "today" : ""}`}>{d}</span>
                     <span className="chips">
                       {its.slice(0, 2).map((it, j) => <span key={j} className={`chip ${STATUS[it.status]?.cls ?? ""}`}>{it.label}</span>)}
+                      {gaps.has(k) && <span className="opentag">Open</span>}
                       {its.length > 2 && <span className="more">+{its.length - 2} more</span>}
                     </span>
-                    <span className="dots">{its.slice(0, 4).map((it, j) => <i key={j} className={`dot2 ${STATUS[it.status]?.cls ?? ""}`} />)}</span>
+                    <span className="dots">{gaps.has(k) && <i className="dot2 bad" />}{its.slice(0, 4).map((it, j) => <i key={j} className={`dot2 ${STATUS[it.status]?.cls ?? ""}`} />)}</span>
                   </button>
                 );
               })}

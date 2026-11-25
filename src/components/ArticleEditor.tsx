@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Article } from "@/lib/types";
 import { PhotoDialog, type Picked } from "./PhotoDialog";
@@ -20,7 +21,7 @@ const TOOLS: ({ label: string; cmd: string; val?: string; title: string } | "sep
   { label: "Redo", cmd: "redo", title: "Redo" },
 ];
 
-export function ArticleEditor({ a }: { a: Article }) {
+export function ArticleEditor({ a, siteId, queueHref, listHref, nextHref, queueCount }: { a: Article; siteId: string; queueHref: string; listHref: string; nextHref: string; queueCount: number }) {
   const [t, setT] = useState(a.title);
   const [slug, setSlug] = useState(a.slug);
   const [meta, setMeta] = useState(a.meta_desc);
@@ -39,6 +40,25 @@ export function ArticleEditor({ a }: { a: Article }) {
     setPhotos([...new DOMParser().parseFromString(html, "text/html").querySelectorAll("img")].map((i) => ({ src: i.getAttribute("src") ?? "", alt: i.getAttribute("alt") ?? "" })));
   }, [html]);
   const router = useRouter();
+  // What was last saved, so we can warn before leaving with unsaved changes.
+  const saved = useRef({ t: a.title, slug: a.slug, meta: a.meta_desc, html: a.html_body, date: a.publish_date ?? "" });
+  const dirty = t !== saved.current.t || slug !== saved.current.slug || meta !== saved.current.meta || html !== saved.current.html || date !== saved.current.date;
+  useEffect(() => {
+    if (!dirty) return;
+    const unload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    // In-app links (sidebar, top bar, back links) do not reload the page, so catch those clicks too.
+    const click = (e: MouseEvent) => {
+      const el = (e.target as HTMLElement).closest("a");
+      const href = el?.getAttribute("href");
+      if (!el || !href || href.startsWith("#") || el.target === "_blank" || e.defaultPrevented) return;
+      if (!window.confirm("You have unsaved changes. Leave without saving?")) { e.preventDefault(); e.stopPropagation(); }
+    };
+    window.addEventListener("beforeunload", unload);
+    document.addEventListener("click", click, true);
+    return () => { window.removeEventListener("beforeunload", unload); document.removeEventListener("click", click, true); };
+  }, [dirty]);
+  const go = (href: string, notice: string) => router.push(`${href}${href.includes("?") ? "&" : "?"}notice=${encodeURIComponent(notice)}`);
+  const short = (x: string) => (x.length > 60 ? x.slice(0, 57) + "..." : x);
   const isLive = a.status === "published";
 
   useEffect(() => { if (body.current) body.current.innerHTML = a.html_body; }, [a.html_body]);
@@ -80,6 +100,7 @@ export function ArticleEditor({ a }: { a: Article }) {
   async function patch(extra: Record<string, unknown> = {}) {
     setBusy(true);
     const res = await fetch(`/api/articles/${a.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: t, slug, meta_desc: meta, html_body: html, publish_date: date || null, ...extra }) });
+    if (res.ok) saved.current = { t, slug, meta, html, date };
     setMsg(res.ok ? "Saved" : "Couldn't save. Try again.");
     setBusy(false); router.refresh();
     return res.ok;
@@ -91,7 +112,7 @@ export function ArticleEditor({ a }: { a: Article }) {
     if (live) wp = window.confirm("This post is live on your blog.\n\nOK = also move it to the WordPress trash (it disappears from your site)\nCancel = leave it live on your blog");
     setBusy(true);
     const res = await fetch(`/api/articles/${a.id}${wp ? "?wp=1" : ""}`, { method: "DELETE" });
-    if (res.ok) { router.push(`/sites/${a.site_id}/articles`); router.refresh(); return; }
+    if (res.ok) { saved.current = { t, slug, meta, html, date }; go(queueCount > 0 ? queueHref : listHref, `Deleted "${short(t)}".`); return; }
     const j = await res.json().catch(() => ({}));
     setMsg("Couldn't delete: " + (j.error ?? res.status));
     setBusy(false);
@@ -163,11 +184,12 @@ export function ArticleEditor({ a }: { a: Article }) {
       {dlg && <PhotoDialog articleId={a.id} target="body" title={t} alt={dlg.mode === "replace" ? photos[dlg.index]?.alt : ""} onClose={() => setDlg(null)} onPick={(p) => { if (dlg.mode === "replace") replacePhoto(dlg.index, p); else insertPhoto(p); setDlg(null); }} />}
 
       <div className="actionbar">
-        <button disabled={busy} onClick={() => patch()}>Save</button>
-        {a.status !== "approved" && a.status !== "published" && <button className="green" disabled={busy} onClick={async () => { if (await patch({ status: "approved" })) setMsg(date && date > new Date().toISOString().slice(0, 10) ? `Approved. It will publish automatically on ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}. Use Publish now to send it immediately.` : "Approved. It publishes at the next nightly run, or use Publish now."); }}>Approve{date ? ` for ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}</button>}
+        <Link href={queueHref} className="btn">← Review queue{queueCount ? ` (${queueCount})` : ""}</Link>
+        <button disabled={busy} onClick={() => patch()}>{dirty ? "Save changes" : "Saved"}</button>
+        {a.status !== "approved" && a.status !== "published" && <button className="green" disabled={busy} onClick={async () => { if (await patch({ status: "approved" })) go(nextHref, `Approved "${short(t)}"${date ? ` for ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}` : ""}. ${date && date > new Date().toISOString().slice(0, 10) ? "It publishes automatically on that day." : "It publishes at the next nightly run, or use Publish now."}`); }}>Approve{date ? ` for ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}</button>}
         {a.status === "approved" && <button className="mark" disabled={busy} onClick={() => patch({ status: "pending_review" })}>Disapprove</button>}
         {a.status === "rejected" && <button disabled={busy} onClick={() => patch({ status: "pending_review" })}>Restore to review</button>}
-        {a.status !== "published" && a.status !== "rejected" && <button className="danger" disabled={busy} onClick={() => patch({ status: "rejected" })}>Reject</button>}
+        {a.status !== "published" && a.status !== "rejected" && <button className="danger" disabled={busy} onClick={async () => { if (await patch({ status: "rejected" })) go(nextHref, `Rejected "${short(t)}". It is out of the review queue.`); }}>Reject</button>}
         <button className="blue" disabled={busy} onClick={publishNow}>{isLive || a.kind === "refresh" ? "Update live post" : "Publish now"}</button>
         <button className="danger" disabled={busy} onClick={remove} style={{ marginLeft: "auto" }}>Delete</button>
         <span className="muted">{msg}{liveLink && <> <a href={liveLink} target="_blank" rel="noreferrer">View it live ↗</a></>}</span>

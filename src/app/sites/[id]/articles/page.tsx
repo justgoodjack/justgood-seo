@@ -14,9 +14,9 @@ const TABS: { key: string; label: string; match?: string[] }[] = [
   { key: "other", label: "Other", match: ["queued", "failed", "rejected"] },
 ];
 
-export default async function Articles({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ status?: string }> }) {
+export default async function Articles({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ status?: string; notice?: string }> }) {
   const { id } = await params;
-  const { status = "all" } = await searchParams;
+  const { status = "all", notice } = await searchParams;
   const articles = must(await db().from("articles").select("*").eq("site_id", id).order("publish_date", { ascending: false, nullsFirst: true }).limit(300)) as Article[];
   const tab = TABS.find((t) => t.key === status) ?? TABS[0];
   const shown = tab.match ? articles.filter((a) => tab.match!.includes(a.status)) : articles;
@@ -34,6 +34,12 @@ export default async function Articles({ params, searchParams }: { params: Promi
           <ActionButton url={`/api/sites/${id}/publish-due`} label="Publish due now" confirm="Publish all approved articles dated today or earlier?" />
         </div>
       </div>
+      {notice && (
+        <div className="callout ok" role="status">
+          <span>{notice}</span>
+          <Link href={status === "all" ? `/sites/${id}/articles` : `/sites/${id}/articles?status=${status}`} className="muted" style={{ marginLeft: "auto" }}>Dismiss</Link>
+        </div>
+      )}
       <div className="tabs" role="tablist">
         {TABS.map((t) => (
           <Link key={t.key} href={t.key === "all" ? `/sites/${id}/articles` : `/sites/${id}/articles?status=${t.key}`} className={`tab ${tab.key === t.key ? "on" : ""}`} role="tab" aria-selected={tab.key === t.key}>

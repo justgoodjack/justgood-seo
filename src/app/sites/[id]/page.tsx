@@ -63,10 +63,10 @@ export default async function Overview({ params }: { params: Promise<{ id: strin
           <table className="queue"><tbody>
             {review.slice(0, 5).map((x) => (
               <tr key={x.id}>
-                <td><Link href={`/articles/${x.id}`}>{x.title || "(untitled)"}</Link></td>
+                <td><Link href={`/sites/${id}/articles/${x.id}`}>{x.title || "(untitled)"}</Link></td>
                 <td><span className={`badge ${x.kind === "refresh" ? "blue" : ""}`}>{x.kind === "refresh" ? "Refresh" : "New"}</span></td>
                 <td>{fmtDate(x.publish_date)}</td>
-                <td className="num"><Link href={`/articles/${x.id}`} className="btn sm mark" style={{ textDecoration: "none" }}>Review</Link></td>
+                <td className="num"><Link href={`/sites/${id}/articles/${x.id}`} className="btn sm mark" style={{ textDecoration: "none" }}>Review</Link></td>
               </tr>
             ))}
             {review.length === 0 && <tr><td className="empty">All caught up. Nothing is waiting for review.</td></tr>}

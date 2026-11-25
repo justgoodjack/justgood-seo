@@ -15,14 +15,17 @@ export function FeaturedCard({ articleId, title, url }: { articleId: string; tit
   }
 
   return (
-    <div className="card">
-      <p className="railtitle">Featured photo</p>
+    <div className="card featcard">
       {url ? <a href={url} target="_blank" rel="noreferrer"><img className="hero-img" src={url} alt="Featured photo" /></a> : <div className="hero-empty">No featured photo</div>}
-      <div className="row" style={{ marginTop: 12 }}>
-        <button className="primary sm" onClick={() => setOpen(true)}>{url ? "Change photo" : "Add a photo"}</button>
-        {url && <button className="sm danger" disabled={busy} onClick={remove}>Remove</button>}
+      <div>
+        <p className="railtitle" style={{ marginBottom: 6 }}>Featured photo</p>
+        <p className="muted" style={{ margin: "0 0 12px" }}>The main picture for this article. Photos inside the article are managed below the text.</p>
+        <div className="row">
+          <button className="primary sm" onClick={() => setOpen(true)}>{url ? "Change photo" : "Add a photo"}</button>
+          {url && <button className="sm danger" disabled={busy} onClick={remove}>Remove</button>}
+        </div>
+        {msg && <p className="muted" style={{ color: "var(--bad)" }}>{msg}</p>}
       </div>
-      {msg && <p className="muted" style={{ color: "var(--bad)" }}>{msg}</p>}
       {open && <PhotoDialog articleId={articleId} target="featured" title={title} onClose={() => setOpen(false)} onPick={() => window.location.reload()} />}
     </div>
   );

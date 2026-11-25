@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface Cand { stockId: string; thumb: string; full: string; credit: string }
 export interface Picked { url: string; id: number; alt: string }
@@ -24,6 +25,14 @@ export function PhotoDialog({ articleId, target, title, alt, onPick, onClose }: 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
 
+  const box = useRef<HTMLDivElement>(null);
+  // Lock page scroll while open and put focus in the dialog so it is the first thing you see and use.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    box.current?.focus();
+    return () => { document.body.style.overflow = prev; };
+  }, []);
   useEffect(() => { const k = (e: KeyboardEvent) => e.key === "Escape" && onClose(); window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose]);
   useEffect(() => { if (!file) { setPreview(""); return; } const u = URL.createObjectURL(file); setPreview(u); return () => URL.revokeObjectURL(u); }, [file]);
 
@@ -65,9 +74,11 @@ export function PhotoDialog({ articleId, target, title, alt, onPick, onClose }: 
     onPick({ url: made.url, id: made.id, alt: prompt.trim() || alt || title });
   });
 
-  return (
+  // Rendered straight into <body> so no animated or transformed ancestor can displace it down the page.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label="Change photo">
+      <div className="modal" role="dialog" aria-modal="true" aria-label="Change photo" tabIndex={-1} ref={box}>
         <div className="row between" style={{ marginBottom: 14 }}>
           <h2 style={{ fontSize: 22 }}>{target === "featured" ? "Change the featured photo" : "Change this photo"}</h2>
           <button className="sm" onClick={onClose}>Close</button>
@@ -120,6 +131,7 @@ export function PhotoDialog({ articleId, target, title, alt, onPick, onClose }: 
         )}
         {msg && <p className="result err" style={{ marginTop: 14 }}>{msg}</p>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -187,7 +187,7 @@ export function ArticlesList({ siteId, rows }: { siteId: string; rows: ArticleRo
           {rows.map((x) => (
             <tr key={x.id}>
               <td><input type="checkbox" className="chk" checked={sel.has(x.id)} onChange={() => toggle(x.id)} aria-label={`Select ${x.title}`} /></td>
-              <td><Link href={`/articles/${x.id}`}>{x.title || "(queued refresh)"}</Link></td>
+              <td><Link href={`/sites/${siteId}/articles/${x.id}`}>{x.title || "(queued refresh)"}</Link></td>
               <td><Badge status={x.status} /></td>
               <td style={{ whiteSpace: "nowrap" }}>{fmtDate(x.publish_date)}</td>
               <td style={{ whiteSpace: "nowrap" }}>{x.wp_link ? <a href={x.wp_link} target="_blank" rel="noreferrer">View ↗</a> : <span className="muted">-</span>}</td>

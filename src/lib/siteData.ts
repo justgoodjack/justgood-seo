@@ -12,7 +12,7 @@ export const todayISO = () => new Date().toISOString().slice(0, 10);
 export function buildCalItems(articles: Article[], keywords: Keyword[]): CalItem[] {
   const written = new Set(articles.map((x) => x.keyword_id).filter(Boolean));
   return [
-    ...articles.filter((x) => x.publish_date && x.status !== "rejected").map((x) => ({ id: x.id, kind: "article" as const, date: x.publish_date as string, label: x.title || "Refresh", status: x.status, href: `/articles/${x.id}` })),
+    ...articles.filter((x) => x.publish_date && x.status !== "rejected").map((x) => ({ id: x.id, kind: "article" as const, date: x.publish_date as string, label: x.title || "Refresh", status: x.status, href: `/sites/${x.site_id}/articles/${x.id}` })),
     ...keywords.filter((k) => k.status === "scheduled" && k.scheduled_date && !written.has(k.id)).map((k) => ({ id: k.id, kind: "topic" as const, date: k.scheduled_date as string, label: k.phrase, status: "scheduled" })),
   ];
 }

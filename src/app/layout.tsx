@@ -1,8 +1,10 @@
 import "./globals.css";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { LogoMark } from "@/components/Logo";
 
 export const metadata = { title: "SEO + GEO Engine", description: "Multi-site WordPress content engine" };
+export const viewport = { themeColor: "#0d1b2e" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -18,7 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <header className="topbar">
           <div className="topbar-inner">
-            <Link href="/" className="brand">SEO + <span className="hl">GEO</span> Engine</Link>
+            <Link href="/" className="brand"><LogoMark size={30} />SEO + <span className="hl">GEO</span> Engine</Link>
             <nav className="topnav">
               <Link href="/">Blogs</Link>
               <Link href="/sites/new">Add blog</Link>

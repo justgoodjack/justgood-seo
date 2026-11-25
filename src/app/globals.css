@@ -71,7 +71,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 32px 24px 96px; animation: ar
 /* top bar */
 .topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--fog) 90%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
 .topbar-inner { max-width: 1080px; margin: 0 auto; padding: 11px 24px; display: flex; align-items: center; gap: 22px; }
-.brand { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: -0.02em; text-decoration: none; white-space: nowrap; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: -0.02em; text-decoration: none; white-space: nowrap; }
 .brand:hover { background: none; }
 .hl { background: var(--mark); color: var(--mark-ink); padding: 0 5px; border-radius: 3px; margin-left: 2px; }
 .topnav { display: flex; gap: 2px; }

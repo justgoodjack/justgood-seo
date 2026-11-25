@@ -1,9 +1,11 @@
+import { LogoMark } from "@/components/Logo";
+
 export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
   return (
     <div className="authwrap">
       <form action="/api/login" method="post" className="card authcard formcard">
-        <p className="eyebrow">Sign in</p>
+        <div style={{ marginBottom: 20 }}><LogoMark size={56} /></div>
         <h1>Back to work.</h1>
         <p className="lede" style={{ fontSize: 15 }}>Sign in to review drafts and keep your blogs on schedule.</p>
         <label>Password</label>

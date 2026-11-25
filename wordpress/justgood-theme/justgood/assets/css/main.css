@@ -1192,3 +1192,8 @@ body.jg-locked { overflow: hidden; }
 	.jg-prose { font-size: 18px; }
 	.jg-prose > p:first-of-type::first-letter { font-size: 3.6em; }
 }
+
+/* ---------- Static pages (About, Contact, legal) ---------- */
+.jg-article--page .jg-prose > p:first-of-type::first-letter { float: none; margin: 0; font: inherit; color: inherit; }
+.jg-article--page .jg-article__head { max-width: calc(680px + var(--gutter) * 2); padding-bottom: clamp(20px, 3vw, 32px); }
+.jg-article--page { padding-bottom: var(--s5); }

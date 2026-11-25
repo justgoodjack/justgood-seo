@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'JG_VERSION', '1.1.3' );
+define( 'JG_VERSION', '1.1.5' );
 
 require_once get_template_directory() . '/inc/template-tags.php';
 

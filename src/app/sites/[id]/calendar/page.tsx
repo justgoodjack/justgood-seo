@@ -21,9 +21,9 @@ export default async function CalendarPage({ params }: { params: Promise<{ id: s
         <div>
           <p className="eyebrow">Step 1 · Plan</p>
           <h2 className="ptitle">Calendar</h2>
-          <p className="lede">When each article goes live. {unscheduled > 0 ? `${unscheduled} topics are waiting for a date.` : "Every topic has a date."} Click a day to see or remove what's on it.</p>
+          <p className="lede">When each article goes live. {unscheduled > 0 ? `${unscheduled} topics are waiting for a date.` : "Every topic has a date."} Topics from the same cluster are never placed next to each other. Click a day to see or remove what's on it.</p>
         </div>
-        <div className="row"><ActionButton url={`/api/sites/${id}/build-calendar`} label="Plan next 30 days" mark /></div>
+        <div className="row"><ActionButton url={`/api/sites/${id}/rebalance-calendar`} label="Spread clusters apart" /><ActionButton url={`/api/sites/${id}/build-calendar`} label="Plan next 30 days" mark /></div>
       </div>
       {keywords.length === 0 && <div className="callout">No topics yet. <Link href={`/sites/${id}/topics`}>Find some topics first</Link>, then come back to plan them.</div>}
       <ContentCalendar siteId={id} items={items} today={todayISO()} list={

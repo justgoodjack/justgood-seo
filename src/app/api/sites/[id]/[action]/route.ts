@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, must } from "@/lib/db";
 import { WP } from "@/lib/wordpress";
-import { buildCalendar, mineKeywords } from "@/lib/keywords";
+import { buildCalendar, mineKeywords, rebalanceCalendar } from "@/lib/keywords";
 import { syncExistingPosts } from "@/lib/linker";
 import { deleteArticle, runGeneration, runPublishing } from "@/lib/pipeline";
 import { syncGsc } from "@/lib/gsc";
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       case "test-post": return NextResponse.json({ ok: true, ...(await new WP(site).testDraft()) });
       case "sync-posts": return NextResponse.json(await syncExistingPosts(site, 40));
       case "mine-keywords": return NextResponse.json(await mineKeywords(site, body.seeds));
+      case "rebalance-calendar": return NextResponse.json(await rebalanceCalendar(site));
       case "build-calendar": return NextResponse.json(await buildCalendar(site, 30));
       case "generate": return NextResponse.json({ results: await runGeneration({ siteId: id, budgetMs: 240_000, maxItems: body.count ?? 3 }) });
       case "publish-due": return NextResponse.json({ results: await runPublishing({ siteId: id }) });

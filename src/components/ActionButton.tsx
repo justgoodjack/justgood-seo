@@ -23,9 +23,11 @@ function describe(action: string, d: Record<string, unknown>): Summary {
     case "sync-posts":
       return { title: `Indexed ${plural(num("indexedNow"), "post")}`, lines: [`${plural(num("totalOnSite"), "published post")} on your site`, ...(num("remaining") > 0 ? [`${num("remaining")} more to go. Run this again to continue.`] : ["Everything is indexed"])] };
     case "mine-keywords":
-      return { title: `Added ${plural(num("added"), "new topic")}`, lines: [`Looked through ${num("candidates")} Google suggestions`, "Find them in the Calendar section below"] };
+      return { title: `Added ${plural(num("added"), "new topic")}`, lines: [`Looked through ${num("candidates")} Google suggestions`, ...(num("similarSkipped") ? [`Skipped ${num("similarSkipped")} that were too similar to topics you already have`] : [])] };
     case "build-calendar":
-      return num("scheduled") ? { title: `Scheduled ${plural(num("scheduled"), "topic")}`, lines: [`The first one goes out ${d.firstDate}`] } : { title: "Nothing to schedule", lines: ["Mine keywords first, then build the calendar."] };
+      return num("scheduled") ? { title: `Scheduled ${plural(num("scheduled"), "topic")}`, lines: [`The first one goes out ${d.firstDate}`, "No cluster is scheduled next to itself", ...(num("unavoidable") ? [`${num("unavoidable")} had to sit near the same cluster because there wasn't enough variety. Find more topics in other clusters.`] : [])] } : { title: "Nothing to schedule", lines: ["Find topics first, then plan the calendar. Topics that are too similar to ones already planned are skipped."] };
+    case "rebalance-calendar":
+      return num("total") < 2 ? { title: "Nothing to spread out", lines: ["You need at least two scheduled topics that haven't been written yet."] } : { title: num("moved") ? `Moved ${plural(num("moved"), "topic")} to new dates` : "Already well spread out", lines: [num("unavoidable") ? `${num("unavoidable")} still sit near the same cluster. There isn't enough variety left to avoid it.` : "No cluster sits next to itself"] };
     case "generate":
     case "publish-due": {
       const rows = (d.results as string[] | undefined) ?? [];

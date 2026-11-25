@@ -89,8 +89,9 @@ export class WP {
 
   /**
    * Create (no postId) or update (postId) a live post.
-   * If WordPress crashes (a plugin fatal error), retry with fewer optional extras, one step at a time,
-   * and report what was left out. Never creates duplicates: it checks for a half-saved post between tries.
+   * If WordPress crashes (a plugin fatal error) we retry with fewer optional extras, one at a time. Once a post
+   * is live we put back every extra that was innocent, so only the real culprit stays out. A featured image that
+   * crashes WordPress is embedded at the top of the article instead. Never creates duplicates.
    */
   async publish(p: {
     postId?: number | null;
@@ -99,28 +100,43 @@ export class WP {
     html: string;
     excerpt: string;
     mediaId?: number | null;
+    mediaUrl?: string | null;
     categoryId?: number | null;
   }): Promise<{ id: number; link: string; dropped: string[] }> {
+    type Key = "meta" | "schema" | "media" | "category" | "excerpt";
+    const LABEL: Record<Key, string> = { meta: "the SEO plugin description", schema: "the FAQ schema block", media: "the featured image (shown at the top of the article instead)", category: "the category", excerpt: "the excerpt" };
     const meta = this.seoMeta(p.excerpt);
     const noSchema = p.html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, "").trim();
-    const ladder: { drop: string | null; build: () => Record<string, unknown> }[] = [
-      { drop: null, build: () => ({ title: p.title, content: p.html, excerpt: p.excerpt, ...(p.mediaId ? { featured_media: p.mediaId } : {}), ...(p.categoryId ? { categories: [p.categoryId] } : {}), ...(meta ? { meta } : {}) }) },
-      ...(meta ? [{ drop: "the SEO plugin description", build: () => ({ title: p.title, content: p.html, excerpt: p.excerpt, ...(p.mediaId ? { featured_media: p.mediaId } : {}), ...(p.categoryId ? { categories: [p.categoryId] } : {}) }) }] : []),
-      ...(noSchema !== p.html.trim() ? [{ drop: "the FAQ schema block", build: () => ({ title: p.title, content: noSchema, excerpt: p.excerpt, ...(p.mediaId ? { featured_media: p.mediaId } : {}), ...(p.categoryId ? { categories: [p.categoryId] } : {}) }) }] : []),
-      ...(p.mediaId ? [{ drop: "the featured image", build: () => ({ title: p.title, content: noSchema, excerpt: p.excerpt, ...(p.categoryId ? { categories: [p.categoryId] } : {}) }) }] : []),
-      ...(p.categoryId ? [{ drop: "the category", build: () => ({ title: p.title, content: noSchema, excerpt: p.excerpt }) }] : []),
-      { drop: "the excerpt", build: () => ({ title: p.title, content: noSchema }) },
-    ];
+    const hasSchema = noSchema !== p.html.trim();
+    const cover = p.mediaUrl ? `<figure class="wp-block-image"><img src="${p.mediaUrl}" alt="${p.title.replace(/"/g, "&quot;")}" /></figure>\n` : "";
+
+    const build = (omit: Set<Key>): Record<string, unknown> => {
+      const body: Record<string, unknown> = { title: p.title, content: (omit.has("media") ? cover : "") + (omit.has("schema") ? noSchema : p.html) };
+      if (!omit.has("excerpt")) body.excerpt = p.excerpt;
+      if (p.mediaId && !omit.has("media")) body.featured_media = p.mediaId;
+      if (p.categoryId && !omit.has("category")) body.categories = [p.categoryId];
+      if (meta && !omit.has("meta")) body.meta = meta;
+      return body;
+    };
+    const order: Key[] = [];
+    if (p.mediaId) order.push("media");
+    if (meta) order.push("meta");
+    if (hasSchema) order.push("schema");
+    if (p.categoryId) order.push("category");
+    order.push("excerpt");
 
     let postId = p.postId ?? null;
     let lastErr = "";
-    const dropped: string[] = [];
-    for (const step of ladder) {
-      if (step.drop) dropped.push(step.drop);
-      const body: Record<string, unknown> = { ...step.build(), status: "publish" };
+    const omit = new Set<Key>();
+    const attempts: (Key | null)[] = [null, ...order];
+    let live: { id: number; link: string } | null = null;
+    let culprit: Key | null = null;
+
+    for (const step of attempts) {
+      if (step) omit.add(step);
+      const body: Record<string, unknown> = { ...build(omit), status: "publish" };
       if (p.slug && !postId) body.slug = p.slug;
-      const path = postId ? `/wp/v2/posts/${postId}` : "/wp/v2/posts";
-      const res = await this.req(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const res = await this.req(postId ? `/wp/v2/posts/${postId}` : "/wp/v2/posts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
       if (res.ok) {
         const out = await this.json<{ id?: number; link?: string; status?: string }>(res);
@@ -128,23 +144,44 @@ export class WP {
         if (out.status !== "publish") throw new Error(`WordPress saved the post but left it as "${out.status}" instead of publishing it. Check that this user's role can publish posts.`);
         const check = await this.json<{ id: number; status: string; link: string }>(await this.req(`/wp/v2/posts/${out.id}`, {}, "?context=edit&_fields=id,status,link"));
         if (check.status !== "publish") throw new Error(`The post was created (#${out.id}) but its status is "${check.status}", not live.`);
-        return { id: out.id, link: check.link || out.link, dropped };
+        live = { id: out.id, link: check.link || out.link };
+        culprit = step;
+        break;
       }
 
       const text = await res.text();
       lastErr = `WordPress ${res.status}: ${describeError(text)}`;
-      if (res.status < 500 && res.status !== 400 && res.status !== 422) throw new Error(lastErr); // auth/permission problems will not improve by dropping fields
+      if (res.status < 500 && res.status !== 400 && res.status !== 422) throw new Error(lastErr);
 
-      // A crash can happen after the post was already saved. Reuse it rather than creating a duplicate.
       if (!postId && p.slug) {
         const found = await this.findBySlug(p.slug);
         if (found) {
-          if (found.status === "publish") return { id: found.id, link: found.link, dropped };
+          if (found.status === "publish") { live = { id: found.id, link: found.link }; culprit = step; break; }
           postId = found.id;
         }
       }
     }
-    throw new Error(lastErr || "WordPress could not publish the post.");
+    if (!live) throw new Error(lastErr || "WordPress could not publish the post.");
+
+    // Everything dropped before the final step was innocent: try to put it back in one update.
+    const innocent = [...omit].filter((k) => k !== culprit);
+    if (innocent.length && culprit) {
+      const keep = new Set<Key>([culprit]);
+      const res = await this.req(`/wp/v2/posts/${live.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(build(keep)) });
+      if (res.ok) { omit.clear(); omit.add(culprit); } else {
+        await res.text();
+        // Try them one at a time so a single bad extra does not cost the others.
+        omit.clear(); omit.add(culprit);
+        const stillOut: Key[] = [];
+        for (const k of innocent) {
+          const trial = new Set<Key>([...omit, ...stillOut]); trial.delete(k);
+          const r = await this.req(`/wp/v2/posts/${live.id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(build(trial)) });
+          if (!r.ok) { await r.text(); stillOut.push(k); }
+        }
+        stillOut.forEach((k) => omit.add(k));
+      }
+    }
+    return { ...live, dropped: [...omit].map((k) => LABEL[k]) };
   }
 
   /** Create one clearly labelled draft so the whole write path can be proven safely. */

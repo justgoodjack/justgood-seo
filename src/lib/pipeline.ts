@@ -149,10 +149,11 @@ export async function publishArticle(site: Site, art: Article): Promise<{ id: nu
     html: withSchema(art.html_body, art.faq_jsonld),
     excerpt: art.meta_desc,
     mediaId: art.featured_media_id,
+    mediaUrl: art.featured_img_url,
     categoryId: site.default_category_id,
   });
   must(
-    await db().from("articles").update({ status: "published", wp_post_id: res.id, wp_link: res.link, published_at: new Date().toISOString(), notes: res.dropped.length ? `Published, but WordPress crashed with ${res.dropped.join(", then ")} included, so ${res.dropped.length > 1 ? "these were" : "it was"} left out. Check your WordPress plugins (Rank Math, Novamira).` : null }).eq("id", art.id).select("id"),
+    await db().from("articles").update({ status: "published", wp_post_id: res.id, wp_link: res.link, published_at: new Date().toISOString(), notes: res.dropped.length ? `Published, but WordPress crashed while saving it, so we left out: ${res.dropped.join("; ")}. A WordPress plugin is rejecting that part.` : null }).eq("id", art.id).select("id"),
   );
   if (art.keyword_id) await db().from("keywords").update({ status: "published" }).eq("id", art.keyword_id);
   await indexPost(site.id, { id: res.id, link: res.link, title: art.title, summary: art.meta_desc }).catch(() => undefined);

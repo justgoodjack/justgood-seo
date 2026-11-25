@@ -59,15 +59,17 @@ This policy explains what information justgoodworld.com ("Just Good", "I", "me")
 
 ## The short version
 
-- Just Good does not run advertising and does not use Google Analytics or any other visitor-tracking analytics.
-- The site collects information only when you leave a comment, send an email, or subscribe to the newsletter, plus the basic technical logs every web server keeps.
-- I do not sell or rent your personal information to anyone.
+- Just Good may use Google Analytics to understand how readers use the site, and may show advertising, including Google AdSense and similar ad services. These services use cookies and similar technologies.
+- Apart from that, the site collects information only when you leave a comment, send an email, or subscribe to the newsletter, plus the basic technical logs every web server keeps.
+- I do not sell your name, email address or other contact details to anyone. Advertising partners may collect and use cookie and device data as described below.
 
 ## Information collected automatically
 
 **Server logs.** Just Good is hosted by Hostinger. Like almost every web host, Hostinger's servers record basic technical details for each request, such as your IP address, browser type, the page requested and the time. These logs are used for security and to keep the site running, and they are kept according to Hostinger's own retention practices.
 
 **Hostinger Reach script.** The site loads a small script from Hostinger's servers (cdn-reach.hostinger.com) that powers the newsletter sign-up. Loading it means your browser connects to Hostinger and shares standard request details such as your IP address. See [Hostinger's privacy policy](https://www.hostinger.com/legal/privacy-policy) for how they handle this.
+
+**Analytics.** Just Good may use Google Analytics, a service from Google, to see which pages are read, how readers arrive, roughly where they are located (country or city level) and what device and browser they use. Google Analytics uses cookies and similar identifiers to recognize your browser, and the reports I see are aggregated, not about named individuals. Google may process this data on servers in other countries. You can opt out with the [Google Analytics opt-out browser add-on](https://tools.google.com/dlpage/gaoptout), and you can learn how Google uses data from sites that use its services at [policies.google.com/technologies/partner-sites](https://policies.google.com/technologies/partner-sites).
 
 **Search data.** The site is connected to Google Search Console through the Rank Math SEO plugin. This gives me summary information about how the site appears in Google search results, such as which searches lead to it. It does not identify individual visitors.
 
@@ -87,7 +89,26 @@ Cookies are small text files saved by your browser. Just Good uses very few:
 - **Login cookies.** These are set only for people who log in to manage the site.
 - **Third-party services.** The Hostinger Reach script may set cookies needed for the sign-up form to work.
 
-There are no advertising or tracking cookies. You can block or delete cookies in your browser settings.
+- **Analytics cookies.** If Google Analytics is active, it sets cookies (such as `_ga`) that tell visits and visitors apart. They typically last up to two years.
+- **Advertising cookies.** If ads are shown, Google and other ad partners set cookies and use similar technologies to deliver ads, limit how often you see the same ad, measure results and, where you allow it, show ads based on your interests.
+
+Where the law requires it, such as for visitors in the European Economic Area, the United Kingdom and Switzerland, non-essential analytics and advertising cookies are used only after you agree to them through a consent banner, and you can change your mind at any time. You can also block or delete cookies in your browser settings, though some parts of the site may then work less smoothly.
+
+## Advertising
+
+Just Good may display ads served by Google AdSense and other advertising partners. These partners may use cookies, web beacons and similar technologies, and may collect information such as your IP address, browser, device and the pages you view, to show ads, including ads based on your earlier visits to this and other websites. Google's use of advertising cookies lets it and its partners serve ads based on your visit to this site and other sites on the internet.
+
+You have choices:
+
+- **Personalized ads.** Turn them off in [Google Ads Settings](https://adssettings.google.com).
+- **Industry opt-outs.** Visit [optout.aboutads.info](https://optout.aboutads.info) (US), [youronlinechoices.com](https://www.youronlinechoices.com) (Europe) or [youradchoices.ca](https://youradchoices.ca) (Canada).
+- **Your device.** Use the advertising and tracking controls on your phone or in your browser.
+
+Opting out does not remove ads; it only makes them less personalized. Ads are provided by third parties and Just Good does not control their content or the data they collect. Please read their own privacy policies.
+
+## Affiliate links
+
+Some articles may include affiliate links. When you click one, the retailer or affiliate network may set a cookie so that a purchase can be credited to Just Good. See the [Disclaimer](/disclaimer/) for details.
 
 ## Embedded content
 
@@ -95,17 +116,17 @@ Some articles may include embedded content from other websites, such as videos o
 
 ## Who your information is shared with
 
-Your information is shared only with the services that make the site work: Hostinger (hosting and newsletter), Automattic (Gravatar) and Google (search data, which does not include your personal details). It may also be disclosed if the law requires it. It is never sold.
+Your information is shared only with the services that make the site work and pay for it: Hostinger (hosting and newsletter), Automattic (Gravatar), Google (search data, analytics and advertising) and other advertising or affiliate partners where those are active. It may also be disclosed if the law requires it. I do not sell your contact details.
 
 ## Your rights
 
-Depending on where you live, you may have the right to see the personal information held about you, correct it, ask for it to be deleted, or object to how it is used. Residents of the European Union, United Kingdom and some US states, including California, have specific rights under laws such as the GDPR and the CCPA. Wherever you live, you can ask me to:
+Depending on where you live, you may have the right to see the personal information held about you, correct it, ask for it to be deleted, or object to how it is used. Residents of the European Union, United Kingdom, South Korea and some US states, including California, have specific rights under laws such as the GDPR, South Korea's Personal Information Protection Act (PIPA) and the CCPA. California residents can also ask not to have their personal information "sold" or "shared" for cross-context advertising; you can do that with the ad choices above or by emailing me. Wherever you live, you can ask me to:
 
 - send you a copy of the personal information I hold about you, such as your comments;
 - correct or delete it;
 - stop sending you the newsletter.
 
-Email [hello@justgoodworld.com](mailto:hello@justgoodworld.com) and I will respond within 30 days. You also have the right to complain to your local data protection authority.
+Email [hello@justgoodworld.com](mailto:hello@justgoodworld.com) and I will respond within 30 days. You also have the right to complain to your local data protection authority, such as South Korea's Personal Information Protection Commission.
 
 ## Children
 
@@ -113,7 +134,7 @@ Just Good is written for adults and is not directed at children under 16. I do n
 
 ## Security and storage
 
-Reasonable steps are taken to protect the site, including HTTPS encryption and keeping software up to date. No website can promise perfect security. The site and its service providers may store and process information in countries other than your own.
+Reasonable steps are taken to protect the site, including HTTPS encryption and keeping software up to date. No website can promise perfect security. The site and its service providers, including Google and Hostinger, may store and process information in countries other than your own, including the United States and countries in Europe and Asia. Where the law requires safeguards for those transfers, I rely on the safeguards my providers offer.
 
 ## Contact
 
@@ -155,6 +176,10 @@ Any action you take based on information from Just Good is strictly at your own 
 ## Affiliate links
 
 Some articles may contain affiliate links. If you click one and make a purchase, Just Good may earn a small commission at no extra cost to you. Affiliate relationships never change what I recommend, and articles with affiliate links say so near the top of the page.
+
+## Advertising
+
+Just Good may display advertising, including ads from Google AdSense and other networks. Ads are served by third parties, are not written or checked by me, and are not endorsements. Seeing an ad does not mean I recommend the product, service or company. I am not responsible for what advertisers say or sell, or for any dealings you have with them. See the [Privacy Policy](/privacy-policy/) for how ads use your data and how to control them.
 
 ## Reviews and sponsored content
 
@@ -200,6 +225,10 @@ You are responsible for anything you post. By submitting a comment, you confirm 
 
 Content on Just Good is general information, not professional advice. Please read the [Disclaimer](/disclaimer/), which forms part of these terms.
 
+## Advertising and analytics
+
+The site may show third-party ads and use analytics, as explained in the [Privacy Policy](/privacy-policy/). You agree not to click ads for the purpose of generating revenue, or to use bots, scripts or other automated methods to view or click on ads or manipulate the site's traffic.
+
 ## Links to other websites
 
 The site links to websites I do not control. I am not responsible for their content, products or policies, and visiting them is at your own risk.
@@ -226,7 +255,7 @@ I may update these terms from time to time. The date at the top shows when they 
 
 ## General
 
-If any part of these terms is found to be unenforceable, the rest remains in effect. These terms are governed by the laws that apply where the site owner is based, without regard to conflict-of-law rules.
+If any part of these terms is found to be unenforceable, the rest remains in effect. These terms, and any dispute arising from them or from your use of the site, are governed by the laws of the Republic of Korea (South Korea), without regard to conflict-of-law rules. Any such dispute will be heard by the competent courts of South Korea, and you agree to their jurisdiction. This does not take away any rights you have under mandatory consumer protection laws where you live.
 
 ## Contact
 

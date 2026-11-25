@@ -29,7 +29,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       case "sync-posts": return NextResponse.json(await syncExistingPosts(site, 40));
       case "mine-keywords": return NextResponse.json(await mineKeywords(site, body.seeds));
       case "rebalance-calendar": return NextResponse.json(await rebalanceCalendar(site));
-      case "build-calendar": return NextResponse.json(await buildCalendar(site, 30));
+      case "build-calendar": return NextResponse.json(await buildCalendar(site, { days: 30, cadence: body.cadence, today: body.today }));
       case "generate": return NextResponse.json({ results: await runGeneration({ siteId: id, budgetMs: 240_000, maxItems: body.count ?? 3 }) });
       case "publish-due": return NextResponse.json({ results: await runPublishing({ siteId: id }) });
       case "gsc-sync": return NextResponse.json(await syncGsc(site));

@@ -25,7 +25,7 @@ function describe(action: string, d: Record<string, unknown>): Summary {
     case "mine-keywords":
       return { title: `Found ${plural(num("strong"), "new topic")} at priority 8 or higher`, lines: [...(num("added") > num("strong") ? [`${num("added") - num("strong")} lower-priority ideas were saved but are hidden`] : []), `Looked through ${num("candidates")} Google suggestions`, ...(num("similarSkipped") ? [`Skipped ${num("similarSkipped")} that were too similar to topics you already have`] : [])] };
     case "build-calendar":
-      return num("scheduled") ? { title: `Scheduled ${plural(num("scheduled"), "topic")}`, lines: [`The first one goes out ${d.firstDate}`, "No cluster is scheduled next to itself", ...(num("unavoidable") ? [`${num("unavoidable")} had to sit near the same cluster because there wasn't enough variety. Find more topics in other clusters.`] : [])] } : { title: "Nothing to schedule", lines: ["Find topics first, then plan the calendar. Topics that are too similar to ones already planned are skipped."] };
+      return num("scheduled") ? { title: `Scheduled ${plural(num("scheduled"), "topic")}`, lines: [`From ${d.firstDate} to ${d.lastDate}, filling the open days`, "No cluster is scheduled next to itself", ...(num("openDays") ? [`${plural(num("openDays"), "day")} left open: only that many priority 8+ topics were available. Find more topics.`] : []), ...(num("unavoidable") ? [`${num("unavoidable")} had to sit next to the same cluster because there wasn't enough variety.`] : [])] } : { title: "Nothing to schedule", lines: [num("openDays") ? "There are open days, but no unscheduled priority 8+ topics left. Find more topics." : "Every day in the next 30 days already has a post at this rhythm."] };
     case "rebalance-calendar":
       return num("total") < 2 ? { title: "Nothing to spread out", lines: ["You need at least two scheduled topics that haven't been written yet."] } : { title: num("moved") ? `Moved ${plural(num("moved"), "topic")} to new dates` : "Already well spread out", lines: [num("unavoidable") ? `${num("unavoidable")} still sit near the same cluster. There isn't enough variety left to avoid it.` : "No cluster sits next to itself"] };
     case "generate":
@@ -52,7 +52,7 @@ function describe(action: string, d: Record<string, unknown>): Summary {
   }
 }
 
-export function ActionButton({ url, label, body, primary, danger, mark, confirm: ask, reload }: { url: string; label: string; body?: unknown; primary?: boolean; danger?: boolean; mark?: boolean; confirm?: string; reload?: boolean }) {
+export function ActionButton({ url, label, body, primary, danger, mark, confirm: ask, reload }: { url: string; label: string; body?: unknown | (() => unknown); primary?: boolean; danger?: boolean; mark?: boolean; confirm?: string; reload?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [out, setOut] = useState<{ ok: boolean; s: Summary } | null>(null);
   const router = useRouter();
@@ -62,7 +62,7 @@ export function ActionButton({ url, label, body, primary, danger, mark, confirm:
     if (ask && !window.confirm(ask)) return;
     setBusy(true); setOut(null);
     try {
-      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) });
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify((typeof body === "function" ? (body as () => unknown)() : body) ?? {}) });
       const text = await res.text();
       let data: Record<string, unknown> = {};
       try { data = JSON.parse(text); } catch { /* html error page */ }

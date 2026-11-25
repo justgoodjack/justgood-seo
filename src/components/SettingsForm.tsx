@@ -36,7 +36,7 @@ export function SettingsForm({ site }: { site: Site }) {
             <option value="batch_preview">Batch preview (review first)</option>
             <option value="autopilot">Autopilot (auto-approve)</option>
           </select></div>
-        <div><label>Posts per month</label><input type="number" name="cadence_per_month" min={1} max={90} defaultValue={site.cadence_per_month} /></div>
+        <div><label>Posts per month (30 = daily)</label><input type="number" name="cadence_per_month" min={1} max={90} defaultValue={site.cadence_per_month} /></div>
         <div><label>SEO plugin</label>
           <select name="seo_plugin" defaultValue={site.seo_plugin}>
             <option value="none">None / not sure</option><option value="yoast">Yoast</option><option value="rankmath">Rank Math</option>

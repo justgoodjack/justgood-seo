@@ -117,7 +117,12 @@ export function assign(slots: string[], pool: Keyword[], fixed: Placed[], window
   let unavoidable = 0;
   const tooSimilar = (k: Keyword, tk: Set<string>) => skipSimilar && placed.some((p) => similar(tk, p.tk, "normal"));
   for (const date of slots) {
-    const near = new Set(placed.filter((p) => p.cluster && Math.abs(dayDiff(p.date, date)) <= window).map((p) => p.cluster as string));
+    const dated = placed.filter((p) => p.date > "2000-01-01").sort((a, b) => a.date.localeCompare(b.date));
+    const before = [...dated].reverse().find((p) => p.date <= date);
+    const after = dated.find((p) => p.date >= date);
+    const near = new Set<string>();
+    for (const p of [before, after]) if (p?.cluster) near.add(p.cluster); // the posts right before and after this one
+    for (const p of dated) if (p.cluster && Math.abs(dayDiff(p.date, date)) <= window) near.add(p.cluster);
     const toks = remaining.map((k) => tokens(k.phrase));
     let i = remaining.findIndex((k, n) => !tooSimilar(k, toks[n]) && (!k.cluster || !near.has(k.cluster)));
     if (i < 0) {
@@ -144,24 +149,47 @@ async function fixedPlacements(siteId: string, excludeIds: Set<string> = new Set
   return out;
 }
 
-/** Assign best unscheduled keywords to future dates at the site's cadence, never putting a cluster next to itself. */
-export async function buildCalendar(site: Site, days = 30) {
+/** The dates to fill: starting today, every day in the window that is at least `gap` days from any other post. */
+export function pickSlots(today: string, days: number, gap: number, occupied: string[]): string[] {
+  const taken = [...occupied];
+  const slots: string[] = [];
+  for (let i = 0; i < days; i++) {
+    const d = addDays(today, i);
+    if (taken.every((t) => Math.abs(dayDiff(t, d)) >= gap)) { slots.push(d); taken.push(d); }
+  }
+  return slots;
+}
+
+/** Trust the browser's idea of "today" (the server clock can be a day off), within one day of UTC. */
+function validToday(t?: string): string {
+  const utc = todayUTC();
+  return t && /^\d{4}-\d{2}-\d{2}$/.test(t) && Math.abs(dayDiff(t, utc)) <= 1 ? t : utc;
+}
+
+/**
+ * Plan the next `days` days starting today, filling every open day at the chosen rhythm,
+ * never putting a cluster next to itself or two near-identical topics.
+ */
+export async function buildCalendar(site: Site, opts: { days?: number; cadence?: number; today?: string } = {}) {
+  const days = opts.days ?? 30;
+  const cadence = Math.min(90, Math.max(1, Math.round(opts.cadence ?? site.cadence_per_month)));
+  if (opts.cadence && cadence !== site.cadence_per_month) await db().from("sites").update({ cadence_per_month: cadence }).eq("id", site.id);
+  const today = validToday(opts.today);
+  const gap = Math.max(1, Math.round(30 / cadence));
+
   const fixed = await fixedPlacements(site.id);
-  const dates = fixed.map((f) => f.date).filter((d) => d > "2000-01-01").sort();
-  const gap = Math.max(1, Math.floor(30 / site.cadence_per_month));
-  const last = dates[dates.length - 1];
-  const start = last && last >= todayUTC() ? addDays(last, gap) : addDays(todayUTC(), 1);
-  const slotsN = Math.max(1, Math.floor((days * site.cadence_per_month) / 30));
-  const slots = Array.from({ length: slotsN }, (_, i) => addDays(start, i * gap));
+  const occupied = fixed.map((f) => f.date).filter((d) => d > "2000-01-01");
+  const slots = pickSlots(today, days, gap, occupied);
 
   const pool = must(
     await db().from("keywords").select("*").eq("site_id", site.id).eq("status", "new").gte("priority", MIN_PRIORITY)
       .order("priority", { ascending: false }).order("trend_score", { ascending: false }).limit(400),
   ) as Keyword[];
 
-  const { out, unavoidable, leftover } = assign(slots, pool, fixed, gap, true);
+  const { out, unavoidable } = assign(slots, pool, fixed, 1, true);
   for (const { kw, date } of out) await db().from("keywords").update({ status: "scheduled", scheduled_date: date }).eq("id", kw.id);
-  return { scheduled: out.length, firstDate: start, unavoidable, similarLeft: leftover.length };
+  const dates = out.map((o) => o.date).sort();
+  return { scheduled: out.length, firstDate: dates[0] ?? null, lastDate: dates[dates.length - 1] ?? null, openDays: slots.length - out.length, unavoidable };
 }
 
 /** Re-order topics that are scheduled but not written yet so no cluster sits next to itself. Dates stay the same. */
@@ -173,9 +201,8 @@ export async function rebalanceCalendar(site: Site) {
   if (movable.length < 2) return { moved: 0, unavoidable: 0, total: movable.length };
   const slots = movable.map((k) => k.scheduled_date as string).sort();
   const fixed = await fixedPlacements(site.id, new Set(movable.map((k) => k.id)));
-  const gap = Math.max(1, Math.floor(30 / site.cadence_per_month));
   const pool = [...movable].sort((a, b) => b.priority - a.priority || b.trend_score - a.trend_score);
-  const { out, unavoidable } = assign(slots, pool, fixed, gap, false);
+  const { out, unavoidable } = assign(slots, pool, fixed, 1, false);
   const before = new Map(movable.map((k) => [k.id, k.scheduled_date]));
   let moved = 0;
   for (const { kw, date } of out) if (before.get(kw.id) !== date) { await db().from("keywords").update({ scheduled_date: date }).eq("id", kw.id); moved++; }

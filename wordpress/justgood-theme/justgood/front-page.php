@@ -13,58 +13,7 @@ get_header();
 $jg_uncat     = (int) get_option( 'default_category' );
 $jg_cover_ids = array();
 
-/* ---------- Cover ---------- */
-$jg_cover = new WP_Query(
-	array(
-		'posts_per_page'      => 3,
-		'category__not_in'    => array( $jg_uncat ),
-		'ignore_sticky_posts' => false,
-		'no_found_rows'       => true,
-	)
-);
-
-if ( $jg_cover->have_posts() ) :
-	?>
-	<section class="jg-cover" aria-label="<?php esc_attr_e( 'Cover stories', 'justgood' ); ?>">
-		<div class="jg-wrap jg-cover__grid">
-			<?php
-			$jg_i = 0;
-			while ( $jg_cover->have_posts() ) :
-				$jg_cover->the_post();
-				$jg_cover_ids[] = get_the_ID();
-				if ( 0 === $jg_i ) {
-					jg_teaser(
-						array(
-							'variant' => 'lead',
-							'size'    => 'jg-cover',
-							'dek'     => true,
-							'heading' => 'h2',
-							'loading' => 'eager',
-						)
-					);
-					echo '<div class="jg-cover__side">';
-				} else {
-					jg_teaser(
-						array(
-							'variant' => 'side',
-							'size'    => 'jg-wide',
-							'loading' => 'eager',
-						)
-					);
-				}
-				++$jg_i;
-			endwhile;
-			if ( $jg_i > 0 ) {
-				echo '</div>';
-			}
-			wp_reset_postdata();
-			?>
-		</div>
-	</section>
-	<?php
-endif;
-
-/* ---------- Tagline and the four doors ---------- */
+/* ---------- The four columns ---------- */
 $jg_cols = array();
 foreach ( jg_columns() as $jg_slug ) {
 	$jg_c = get_category_by_slug( $jg_slug );
@@ -73,57 +22,101 @@ foreach ( jg_columns() as $jg_slug ) {
 	}
 }
 
-if ( $jg_cols ) :
-	$jg_word = function ( $slug, $label, $after = '' ) use ( $jg_cols ) {
-		$word = empty( $jg_cols[ $slug ] )
-			? esc_html( $label )
-			: sprintf( '<a class="jg-tagline__word" data-col="%1$s" href="%2$s">%3$s</a>', esc_attr( $slug ), esc_url( get_category_link( $jg_cols[ $slug ] ) ), esc_html( $label ) );
-		return '<span class="jg-tagline__unit">' . $word . esc_html( $after ) . '</span>';
-	};
-	?>
-	<section class="jg-doors jg-reveal" aria-labelledby="jg-tagline">
-		<div class="jg-wrap">
-			<h2 class="jg-tagline" id="jg-tagline">
-				<?php
-				// The site tagline: "Smart travel, better health, useful tech, and real advice."
-				echo esc_html__( 'Smart', 'justgood' ) . ' ' . $jg_word( 'travel', __( 'travel', 'justgood' ), ',' ) . ' '; // phpcs:ignore
-				echo esc_html__( 'better', 'justgood' ) . ' ' . $jg_word( 'health', __( 'health', 'justgood' ), ',' ) . ' '; // phpcs:ignore
-				echo esc_html__( 'useful', 'justgood' ) . ' ' . $jg_word( 'tech', __( 'tech', 'justgood' ), ',' ) . ' '; // phpcs:ignore
-				echo esc_html__( 'and real', 'justgood' ) . ' ' . $jg_word( 'advice', __( 'advice', 'justgood' ), '.' ); // phpcs:ignore
-				?>
-			</h2>
+$jg_word = function ( $slug, $label, $after = '' ) use ( $jg_cols ) {
+	$word = empty( $jg_cols[ $slug ] )
+		? esc_html( $label )
+		: sprintf( '<a class="jg-tagline__word" data-col="%1$s" href="%2$s">%3$s</a>', esc_attr( $slug ), esc_url( get_category_link( $jg_cols[ $slug ] ) ), esc_html( $label ) );
+	return '<span class="jg-tagline__unit">' . $word . esc_html( $after ) . '</span>';
+};
 
-			<div class="jg-doors__grid">
-				<?php
-				foreach ( $jg_cols as $jg_slug => $jg_c ) :
-					$jg_latest = get_posts(
-						array(
-							'category_name'  => $jg_slug,
-							'posts_per_page' => 1,
-							'meta_key'       => '_thumbnail_id', // phpcs:ignore
-						)
-					);
-					?>
-					<a class="jg-door" data-col="<?php echo esc_attr( $jg_slug ); ?>" href="<?php echo esc_url( get_category_link( $jg_c ) ); ?>">
-						<span class="jg-door__art">
-							<?php
-							if ( $jg_latest ) {
-								echo get_the_post_thumbnail( $jg_latest[0], 'jg-tall', array( 'loading' => 'lazy', 'alt' => '' ) );
-							}
-							?>
-						</span>
-						<span class="jg-door__name"><?php echo esc_html( $jg_c->name ); ?></span>
-						<span class="jg-door__desc"><?php echo esc_html( $jg_c->description ); ?></span>
-						<span class="jg-door__go">
-							<?php
-							/* translators: %d: number of stories. */
-							printf( esc_html( _n( '%d story', '%d stories', (int) $jg_c->count, 'justgood' ) ), (int) $jg_c->count );
-							?>
-							<?php echo jg_icon( 'arrow' ); // phpcs:ignore ?>
-						</span>
-					</a>
-				<?php endforeach; ?>
-			</div>
+/* ---------- Hero: tagline, lead story, four color bar ---------- */
+$jg_cover = new WP_Query(
+	array(
+		'posts_per_page'      => 3,
+		'category__not_in'    => array( $jg_uncat ),
+		'ignore_sticky_posts' => false,
+		'no_found_rows'       => true,
+	)
+);
+$jg_side = array();
+?>
+<section class="jg-hero" aria-labelledby="jg-tagline">
+	<div class="jg-wrap jg-hero__grid">
+		<h1 class="jg-tagline" id="jg-tagline">
+			<?php
+			// The site tagline: "Smart travel, better health, useful tech, and real advice."
+			echo esc_html__( 'Smart', 'justgood' ) . ' ' . $jg_word( 'travel', __( 'travel', 'justgood' ), ',' ) . ' '; // phpcs:ignore
+			echo esc_html__( 'better', 'justgood' ) . ' ' . $jg_word( 'health', __( 'health', 'justgood' ), ',' ) . ' '; // phpcs:ignore
+			echo esc_html__( 'useful', 'justgood' ) . ' ' . $jg_word( 'tech', __( 'tech', 'justgood' ), ',' ) . ' '; // phpcs:ignore
+			echo esc_html__( 'and real', 'justgood' ) . ' ' . $jg_word( 'advice', __( 'advice', 'justgood' ), '.' ); // phpcs:ignore
+			?>
+		</h1>
+		<?php
+		$jg_i = 0;
+		while ( $jg_cover->have_posts() ) :
+			$jg_cover->the_post();
+			$jg_cover_ids[] = get_the_ID();
+			if ( 0 === $jg_i ) {
+				echo '<div class="jg-hero__lead">';
+				jg_teaser(
+					array(
+						'variant' => 'lead',
+						'size'    => 'jg-cover',
+						'dek'     => false,
+						'heading' => 'h2',
+						'loading' => 'eager',
+					)
+				);
+				echo '</div>';
+			} else {
+				$jg_side[] = get_the_ID();
+			}
+			++$jg_i;
+		endwhile;
+		wp_reset_postdata();
+		?>
+	</div>
+
+	<?php if ( $jg_cols ) : ?>
+		<nav class="jg-hero__bar" aria-label="<?php esc_attr_e( 'Columns', 'justgood' ); ?>">
+			<?php foreach ( $jg_cols as $jg_slug => $jg_c ) : ?>
+				<a class="jg-bar__item" data-col="<?php echo esc_attr( $jg_slug ); ?>" href="<?php echo esc_url( get_category_link( $jg_c ) ); ?>">
+					<span class="jg-bar__name"><?php echo esc_html( $jg_c->name ); ?></span>
+					<span class="jg-bar__desc"><?php echo esc_html( $jg_c->description ); ?></span>
+					<?php echo jg_icon( 'arrow' ); // phpcs:ignore ?>
+				</a>
+			<?php endforeach; ?>
+		</nav>
+	<?php endif; ?>
+</section>
+
+<?php
+if ( $jg_side ) :
+	$jg_sq = new WP_Query(
+		array(
+			'post__in'            => $jg_side,
+			'orderby'             => 'post__in',
+			'ignore_sticky_posts' => true,
+			'no_found_rows'       => true,
+		)
+	);
+	?>
+	<section class="jg-alsonow jg-reveal" aria-label="<?php esc_attr_e( 'More top stories', 'justgood' ); ?>">
+		<div class="jg-wrap jg-alsonow__grid">
+			<?php
+			while ( $jg_sq->have_posts() ) :
+				$jg_sq->the_post();
+				jg_teaser(
+					array(
+						'variant' => 'row',
+						'size'    => 'jg-wide',
+						'dek'     => true,
+						'heading' => 'h2',
+					)
+				);
+			endwhile;
+			wp_reset_postdata();
+			?>
 		</div>
 	</section>
 	<?php

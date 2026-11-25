@@ -23,7 +23,7 @@ function describe(action: string, d: Record<string, unknown>): Summary {
     case "sync-posts":
       return { title: `Indexed ${plural(num("indexedNow"), "post")}`, lines: [`${plural(num("totalOnSite"), "published post")} on your site`, ...(num("remaining") > 0 ? [`${num("remaining")} more to go. Run this again to continue.`] : ["Everything is indexed"])] };
     case "mine-keywords":
-      return { title: `Added ${plural(num("added"), "new topic")}`, lines: [`Looked through ${num("candidates")} Google suggestions`, ...(num("similarSkipped") ? [`Skipped ${num("similarSkipped")} that were too similar to topics you already have`] : [])] };
+      return { title: `Found ${plural(num("strong"), "new topic")} at priority 8 or higher`, lines: [...(num("added") > num("strong") ? [`${num("added") - num("strong")} lower-priority ideas were saved but are hidden`] : []), `Looked through ${num("candidates")} Google suggestions`, ...(num("similarSkipped") ? [`Skipped ${num("similarSkipped")} that were too similar to topics you already have`] : [])] };
     case "build-calendar":
       return num("scheduled") ? { title: `Scheduled ${plural(num("scheduled"), "topic")}`, lines: [`The first one goes out ${d.firstDate}`, "No cluster is scheduled next to itself", ...(num("unavoidable") ? [`${num("unavoidable")} had to sit near the same cluster because there wasn't enough variety. Find more topics in other clusters.`] : [])] } : { title: "Nothing to schedule", lines: ["Find topics first, then plan the calendar. Topics that are too similar to ones already planned are skipped."] };
     case "rebalance-calendar":

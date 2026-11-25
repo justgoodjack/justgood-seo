@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, fmtDate } from "./Badge";
 import { groupSimilar, type Strictness } from "@/lib/similarity";
+import { MIN_PRIORITY } from "@/lib/priority";
 
 export interface TopicRow { id: string; phrase: string; cluster: string | null; intent: string | null; priority: number; status: string; scheduled_date: string | null }
 export interface ArticleRow { id: string; title: string; status: string; publish_date: string | null; wp_link: string | null }
@@ -24,16 +25,17 @@ function useSelection(ids: string[]) {
 }
 
 const PRIORITY: { key: string; label: string; test: (n: number) => boolean }[] = [
-  { key: "high", label: "High (8 to 10)", test: (n) => n >= 8 },
-  { key: "mid", label: "Medium (5 to 7)", test: (n) => n >= 5 && n <= 7 },
-  { key: "low", label: "Low (1 to 4)", test: (n) => n <= 4 },
+  { key: "core", label: `Priority ${MIN_PRIORITY} to 10`, test: (n) => n >= MIN_PRIORITY },
+  { key: "nine", label: "Priority 9 to 10", test: (n) => n >= 9 },
+  { key: "ten", label: "Priority 10 only", test: (n) => n === 10 },
+  { key: "all", label: "Show all, including lower", test: () => true },
 ];
 const STATUS_LABEL: Record<string, string> = { new: "Unscheduled", scheduled: "Scheduled", drafted: "Drafted", published: "Published", skipped: "Skipped" };
 const NONE = "__none__";
 
 export function TopicsList({ siteId, rows }: { siteId: string; rows: TopicRow[] }) {
   const [q, setQ] = useState("");
-  const [pri, setPri] = useState("");
+  const [pri, setPri] = useState("core");
   const [intent, setIntent] = useState("");
   const [cluster, setCluster] = useState("");
   const [status, setStatus] = useState("");
@@ -44,7 +46,9 @@ export function TopicsList({ siteId, rows }: { siteId: string; rows: TopicRow[] 
   const [rm, setRm] = useState<Set<string>>(new Set());
   const router = useRouter();
 
-  const groups = useMemo(() => groupSimilar(rows, level), [rows, level]);
+  const scopeRows = useMemo(() => rows.filter((r) => PRIORITY.find((p) => p.key === pri)!.test(r.priority)), [rows, pri]);
+  const hiddenLow = rows.filter((r) => r.priority < MIN_PRIORITY).length;
+  const groups = useMemo(() => groupSimilar(scopeRows, level), [scopeRows, level]);
   const removable = (r: TopicRow) => r.status === "new" || r.status === "scheduled" || r.status === "skipped"; // never offer topics that already have an article
   const dupeTotal = groups.reduce((n, g) => n + g.dupes.length, 0);
   useEffect(() => { setRm(new Set(groups.flatMap((g) => g.dupes.filter(removable).map((d) => d.id)))); }, [groups]);
@@ -57,17 +61,18 @@ export function TopicsList({ siteId, rows }: { siteId: string; rows: TopicRow[] 
   const needle = q.trim().toLowerCase();
   const shown = rows.filter((r) =>
     (!needle || r.phrase.toLowerCase().includes(needle) || (r.cluster ?? "").toLowerCase().includes(needle)) &&
-    (!pri || PRIORITY.find((p) => p.key === pri)!.test(r.priority)) &&
+    PRIORITY.find((p) => p.key === pri)!.test(r.priority) &&
     (!intent || (intent === NONE ? !r.intent : r.intent === intent)) &&
     (!cluster || (cluster === NONE ? !r.cluster : r.cluster === cluster)) &&
     (!status || r.status === status));
-  const filtering = !!(needle || pri || intent || cluster || status);
-  const reset = () => { setQ(""); setPri(""); setIntent(""); setCluster(""); setStatus(""); };
+  const filtering = !!(needle || pri !== "core" || intent || cluster || status);
+  const reset = () => { setQ(""); setPri("core"); setIntent(""); setCluster(""); setStatus(""); };
 
   const shownIds = shown.map((r) => r.id);
   const { sel, toggle, all, toggleAll, clear } = useSelection(shownIds);
   const picked = shownIds.filter((id) => sel.has(id)); // never act on rows hidden by a filter
-  const unscheduled = rows.filter((r) => r.status === "new").length;
+  const unschedIds = scopeRows.filter((r) => r.status === "new").map((r) => r.id);
+  const unscheduled = unschedIds.length;
 
   async function del(body: unknown, ask: string) {
     if (!window.confirm(ask)) return;
@@ -83,7 +88,7 @@ export function TopicsList({ siteId, rows }: { siteId: string; rows: TopicRow[] 
         <div className="searchbox">
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search topics or clusters" aria-label="Search topics" />
         </div>
-        <select value={pri} onChange={(e) => setPri(e.target.value)} aria-label="Filter by priority"><option value="">Any priority</option>{PRIORITY.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}</select>
+        <select value={pri} onChange={(e) => setPri(e.target.value)} aria-label="Filter by priority">{PRIORITY.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}</select>
         <select value={intent} onChange={(e) => setIntent(e.target.value)} aria-label="Filter by intent"><option value="">Any intent</option>{intents.map((i) => <option key={i} value={i}>{i[0].toUpperCase() + i.slice(1)}</option>)}{hasUnlabeledIntent && <option value={NONE}>No intent</option>}</select>
         <select value={cluster} onChange={(e) => setCluster(e.target.value)} aria-label="Filter by cluster"><option value="">Any cluster</option>{clusters.map((c) => <option key={c} value={c}>{c}</option>)}{hasNoCluster && <option value={NONE}>No cluster</option>}</select>
         <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status"><option value="">Any status</option>{statuses.map((st) => <option key={st} value={st}>{STATUS_LABEL[st] ?? st}</option>)}</select>
@@ -124,13 +129,14 @@ export function TopicsList({ siteId, rows }: { siteId: string; rows: TopicRow[] 
         {picked.length > 0
           ? <><strong>{picked.length} selected</strong><button className="sm danger" disabled={busy} onClick={() => del({ ids: picked }, `Delete ${picked.length} topic${picked.length === 1 ? "" : "s"}? Articles already written from them are kept.`)}>Delete selected</button><button className="sm" onClick={clear}>Clear</button></>
           : <>
-              <span className="muted">{filtering ? <>Showing <strong>{shown.length}</strong> of {rows.length} topics</> : <>{rows.length} topics</>}</span>
+              <span className="muted">{filtering ? <>Showing <strong>{shown.length}</strong> of {scopeRows.length} topics</> : <>{scopeRows.length} topics</>}</span>
               {filtering && <button className="sm" onClick={reset}>Clear filters</button>}
               <button className={`sm ${simOpen ? "blue" : ""}`} onClick={() => setSimOpen(!simOpen)}>{dupeTotal > 0 ? `Similar topics (${dupeTotal})` : "Similar topics"}</button>
-              {!filtering && unscheduled > 0 && <button className="sm danger" disabled={busy} onClick={() => del({ scope: "unscheduled" }, `Delete all ${unscheduled} unscheduled topics?`)}>Delete all {unscheduled} unscheduled</button>}
+              {!filtering && unscheduled > 0 && <button className="sm danger" disabled={busy} onClick={() => del({ ids: unschedIds }, `Delete the ${unscheduled} unscheduled topics shown?`)}>Delete all {unscheduled} unscheduled</button>}
               {filtering && shown.length > 0 && <button className="sm danger" disabled={busy} onClick={() => del({ ids: shownIds }, `Delete the ${shown.length} topics currently shown? Articles already written from them are kept.`)}>Delete these {shown.length}</button>}
             </>}
-        {msg && <span className="muted" style={{ marginLeft: "auto" }}>{msg}</span>}
+        {hiddenLow > 0 && pri === "core" && <button className="sm" style={{ marginLeft: "auto" }} onClick={() => setPri("all")}>{hiddenLow} lower-priority hidden. Show</button>}
+        {msg && <span className="muted" style={{ marginLeft: hiddenLow > 0 && pri === "core" ? 0 : "auto" }}>{msg}</span>}
       </div>
       <div className="tablewrap"><table>
         <thead><tr><th style={{ width: 40 }}><input type="checkbox" className="chk" checked={all} onChange={toggleAll} aria-label="Select all shown" /></th><th>Topic</th><th>Cluster</th><th>Intent</th><th className="num">Priority</th><th>Status</th><th>Date</th><th></th></tr></thead>
@@ -144,7 +150,8 @@ export function TopicsList({ siteId, rows }: { siteId: string; rows: TopicRow[] 
             </tr>
           ))}
           {rows.length === 0 && <tr><td colSpan={8} className="empty">No topics yet. Add seed topics in Settings, then run Find topics.</td></tr>}
-          {rows.length > 0 && shown.length === 0 && <tr><td colSpan={8} className="empty">No topics match. <button className="sm" onClick={reset}>Clear filters</button></td></tr>}
+          {rows.length > 0 && scopeRows.length === 0 && <tr><td colSpan={8} className="empty">No topics at priority {MIN_PRIORITY} or higher yet. Find more topics, or <button className="sm" onClick={() => setPri("all")}>show the {hiddenLow} lower-priority ones</button></td></tr>}
+          {scopeRows.length > 0 && shown.length === 0 && <tr><td colSpan={8} className="empty">No topics match. <button className="sm" onClick={reset}>Clear filters</button></td></tr>}
         </tbody>
       </table></div>
     </div>

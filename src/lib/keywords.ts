@@ -3,6 +3,7 @@ import { addDays, sleep, todayUTC } from "./config";
 import { generate, parseJson } from "./gemini";
 import type { Site, Keyword } from "./types";
 import { similar, tokens } from "./similarity";
+import { MIN_PRIORITY } from "./priority";
 
 /** Google Autocomplete (unofficial but free and long-stable). Seed + a..z expansion. */
 async function suggest(q: string): Promise<string[]> {
@@ -70,6 +71,7 @@ export async function mineKeywords(site: Site, seeds?: string[]) {
   }
 
   let added = 0;
+  let strong = 0;
   for (let i = 0; i < fresh.length; i += 40) {
     const batch = fresh.slice(i, i + 40);
     let labels: Classified[] = [];
@@ -94,8 +96,9 @@ export async function mineKeywords(site: Site, seeds?: string[]) {
     const { error } = await db().from("keywords").upsert(rows, { onConflict: "site_id,phrase", ignoreDuplicates: true });
     if (error) throw new Error(error.message);
     added += rows.length;
+    strong += rows.filter((r) => r.priority >= MIN_PRIORITY).length;
   }
-  return { candidates: merged.size, added, similarSkipped };
+  return { candidates: merged.size, added, strong, similarSkipped };
 }
 
 const dayDiff = (a: string, b: string) => Math.round((Date.parse(a) - Date.parse(b)) / 864e5);
@@ -152,7 +155,7 @@ export async function buildCalendar(site: Site, days = 30) {
   const slots = Array.from({ length: slotsN }, (_, i) => addDays(start, i * gap));
 
   const pool = must(
-    await db().from("keywords").select("*").eq("site_id", site.id).eq("status", "new").gte("priority", 5)
+    await db().from("keywords").select("*").eq("site_id", site.id).eq("status", "new").gte("priority", MIN_PRIORITY)
       .order("priority", { ascending: false }).order("trend_score", { ascending: false }).limit(400),
   ) as Keyword[];
 

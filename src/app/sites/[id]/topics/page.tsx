@@ -17,7 +17,7 @@ export default async function Topics({ params }: { params: Promise<{ id: string 
         <div>
           <p className="eyebrow">Step 1 · Plan</p>
           <h2 className="ptitle">Topics</h2>
-          <p className="lede">Ideas for articles, mined from Google suggestions and ranked for your niche. Delete the ones you don't want, then give the rest dates on the <Link href={`/sites/${id}/calendar`}>Calendar</Link>.</p>
+          <p className="lede">Ideas for articles, mined from Google suggestions and ranked for your niche. Only priority 8 to 10 is shown and scheduled. Delete the ones you don't want, then give the rest dates on the <Link href={`/sites/${id}/calendar`}>Calendar</Link>.</p>
         </div>
         <div className="row"><ActionButton url={`/api/sites/${id}/mine-keywords`} label="Find more topics" mark /></div>
       </div>

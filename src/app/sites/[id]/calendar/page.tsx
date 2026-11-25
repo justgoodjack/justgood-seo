@@ -4,6 +4,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { ContentCalendar } from "@/components/ContentCalendar";
 import { Badge, fmtDate } from "@/components/Badge";
 import { buildCalItems, todayISO } from "@/lib/siteData";
+import { MIN_PRIORITY } from "@/lib/priority";
 import type { Article, Keyword } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -14,14 +15,14 @@ export default async function CalendarPage({ params }: { params: Promise<{ id: s
   const articles = must(await db().from("articles").select("*").eq("site_id", id).limit(300)) as Article[];
   const items = buildCalItems(articles, keywords);
   const sorted = [...items].sort((a, b) => a.date.localeCompare(b.date));
-  const unscheduled = keywords.filter((k) => k.status === "new").length;
+  const unscheduled = keywords.filter((k) => k.status === "new" && k.priority >= MIN_PRIORITY).length;
   return (
     <>
       <div className="pagehead">
         <div>
           <p className="eyebrow">Step 1 · Plan</p>
           <h2 className="ptitle">Calendar</h2>
-          <p className="lede">When each article goes live. {unscheduled > 0 ? `${unscheduled} topics are waiting for a date.` : "Every topic has a date."} Topics from the same cluster are never placed next to each other. Click a day to see or remove what's on it.</p>
+          <p className="lede">When each article goes live. {unscheduled > 0 ? `${unscheduled} priority ${MIN_PRIORITY}+ topics are waiting for a date.` : `Every priority ${MIN_PRIORITY}+ topic has a date.`} Topics from the same cluster are never placed next to each other. Click a day to see or remove what's on it.</p>
         </div>
         <div className="row"><ActionButton url={`/api/sites/${id}/rebalance-calendar`} label="Spread clusters apart" /><ActionButton url={`/api/sites/${id}/build-calendar`} label="Plan next 30 days" mark /></div>
       </div>

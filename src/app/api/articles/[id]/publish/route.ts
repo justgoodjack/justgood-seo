@@ -12,7 +12,7 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
     const art = must(await db().from("articles").select("*").eq("id", id).single()) as Article;
     if (art.status === "queued") throw new Error("Draft not generated yet");
     const res = await publishArticle(await loadSite(art.site_id), art);
-    return NextResponse.json({ ok: true, link: res.link, id: res.id });
+    return NextResponse.json({ ok: true, link: res.link, id: res.id, dropped: res.dropped });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

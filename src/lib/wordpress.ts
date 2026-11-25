@@ -34,7 +34,7 @@ export class WP {
 
   private async json<T>(res: Response): Promise<T> {
     const text = await res.text();
-    if (!res.ok) throw new Error(`WordPress ${res.status}: ${text.slice(0, 300)}`);
+    if (!res.ok) throw new Error(`WordPress ${res.status}: ${describeError(text)}`);
     try {
       return JSON.parse(text) as T;
     } catch {
@@ -77,7 +77,21 @@ export class WP {
     return undefined;
   }
 
-  /** Create (no postId) or update (postId) a published post. */
+  /** Look for a post we may have created right before WordPress crashed. */
+  private async findBySlug(slug: string): Promise<{ id: number; status: string; link: string } | null> {
+    try {
+      const rows = await this.json<{ id: number; status: string; link: string }[]>(
+        await this.req("/wp/v2/posts", {}, `?slug=${encodeURIComponent(slug)}&status=publish,draft,pending,future,private&_fields=id,status,link`),
+      );
+      return rows[0] ?? null;
+    } catch { return null; }
+  }
+
+  /**
+   * Create (no postId) or update (postId) a live post.
+   * If WordPress crashes (a plugin fatal error), retry with fewer optional extras, one step at a time,
+   * and report what was left out. Never creates duplicates: it checks for a half-saved post between tries.
+   */
   async publish(p: {
     postId?: number | null;
     title: string;
@@ -86,34 +100,51 @@ export class WP {
     excerpt: string;
     mediaId?: number | null;
     categoryId?: number | null;
-  }): Promise<{ id: number; link: string }> {
-    const body: Record<string, unknown> = {
-      title: p.title,
-      content: p.html,
-      excerpt: p.excerpt,
-      status: "publish",
-    };
-    if (p.slug && !p.postId) body.slug = p.slug;
-    if (p.mediaId) body.featured_media = p.mediaId;
-    if (p.categoryId) body.categories = [p.categoryId];
+  }): Promise<{ id: number; link: string; dropped: string[] }> {
     const meta = this.seoMeta(p.excerpt);
-    const path = p.postId ? `/wp/v2/posts/${p.postId}` : "/wp/v2/posts";
-    const send = (b: unknown) =>
-      this.req(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
+    const noSchema = p.html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, "").trim();
+    const ladder: { drop: string | null; build: () => Record<string, unknown> }[] = [
+      { drop: null, build: () => ({ title: p.title, content: p.html, excerpt: p.excerpt, ...(p.mediaId ? { featured_media: p.mediaId } : {}), ...(p.categoryId ? { categories: [p.categoryId] } : {}), ...(meta ? { meta } : {}) }) },
+      ...(meta ? [{ drop: "the SEO plugin description", build: () => ({ title: p.title, content: p.html, excerpt: p.excerpt, ...(p.mediaId ? { featured_media: p.mediaId } : {}), ...(p.categoryId ? { categories: [p.categoryId] } : {}) }) }] : []),
+      ...(noSchema !== p.html.trim() ? [{ drop: "the FAQ schema block", build: () => ({ title: p.title, content: noSchema, excerpt: p.excerpt, ...(p.mediaId ? { featured_media: p.mediaId } : {}), ...(p.categoryId ? { categories: [p.categoryId] } : {}) }) }] : []),
+      ...(p.mediaId ? [{ drop: "the featured image", build: () => ({ title: p.title, content: noSchema, excerpt: p.excerpt, ...(p.categoryId ? { categories: [p.categoryId] } : {}) }) }] : []),
+      ...(p.categoryId ? [{ drop: "the category", build: () => ({ title: p.title, content: noSchema, excerpt: p.excerpt }) }] : []),
+      { drop: "the excerpt", build: () => ({ title: p.title, content: noSchema }) },
+    ];
 
-    let res = await send(meta ? { ...body, meta } : body);
-    if (!res.ok && meta) res = await send(body); // meta key not registered on this site: retry without it
-    const out = await this.json<{ id?: number; link?: string; status?: string }>(res);
-    if (typeof out.id !== "number" || !out.link) {
-      throw new Error("WordPress replied, but did not create a post. Check the WordPress URL in Settings and try the connection test.");
+    let postId = p.postId ?? null;
+    let lastErr = "";
+    const dropped: string[] = [];
+    for (const step of ladder) {
+      if (step.drop) dropped.push(step.drop);
+      const body: Record<string, unknown> = { ...step.build(), status: "publish" };
+      if (p.slug && !postId) body.slug = p.slug;
+      const path = postId ? `/wp/v2/posts/${postId}` : "/wp/v2/posts";
+      const res = await this.req(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+      if (res.ok) {
+        const out = await this.json<{ id?: number; link?: string; status?: string }>(res);
+        if (typeof out.id !== "number" || !out.link) throw new Error("WordPress replied, but did not create a post. Check the WordPress URL in Settings and try the connection test.");
+        if (out.status !== "publish") throw new Error(`WordPress saved the post but left it as "${out.status}" instead of publishing it. Check that this user's role can publish posts.`);
+        const check = await this.json<{ id: number; status: string; link: string }>(await this.req(`/wp/v2/posts/${out.id}`, {}, "?context=edit&_fields=id,status,link"));
+        if (check.status !== "publish") throw new Error(`The post was created (#${out.id}) but its status is "${check.status}", not live.`);
+        return { id: out.id, link: check.link || out.link, dropped };
+      }
+
+      const text = await res.text();
+      lastErr = `WordPress ${res.status}: ${describeError(text)}`;
+      if (res.status < 500 && res.status !== 400 && res.status !== 422) throw new Error(lastErr); // auth/permission problems will not improve by dropping fields
+
+      // A crash can happen after the post was already saved. Reuse it rather than creating a duplicate.
+      if (!postId && p.slug) {
+        const found = await this.findBySlug(p.slug);
+        if (found) {
+          if (found.status === "publish") return { id: found.id, link: found.link, dropped };
+          postId = found.id;
+        }
+      }
     }
-    if (out.status !== "publish") {
-      throw new Error(`WordPress saved the post but left it as "${out.status}" instead of publishing it. Check that this user's role can publish posts.`);
-    }
-    // Trust but verify: read it back so we never report success for a post that is not there.
-    const check = await this.json<{ id: number; status: string; link: string }>(await this.req(`/wp/v2/posts/${out.id}`, {}, "?context=edit&_fields=id,status,link"));
-    if (check.status !== "publish") throw new Error(`The post was created (#${out.id}) but its status is "${check.status}", not live.`);
-    return { id: out.id, link: check.link || out.link };
+    throw new Error(lastErr || "WordPress could not publish the post.");
   }
 
   /** Create one clearly labelled draft so the whole write path can be proven safely. */
@@ -159,6 +190,18 @@ export class WP {
       if (rows.length < 100) break;
     }
     return out;
+  }
+}
+
+/** Pull the useful part out of a WordPress error body (includes the PHP file when a plugin crashes). */
+function describeError(text: string): string {
+  try {
+    const j = JSON.parse(text);
+    const php: string | undefined = j?.data?.error?.message;
+    const base = String(j?.message ?? j?.code ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    return (php ? `${base} ${php}` : base).slice(0, 900);
+  } catch {
+    return text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 400);
   }
 }
 

@@ -21,7 +21,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
         {a.publish_date && <span className="muted">Goes live {fmtDate(a.publish_date)}</span>}
         {a.wp_link && <a className="btn sm" href={a.wp_link} target="_blank" rel="noreferrer" style={{ marginLeft: "auto" }}>View live post ↗</a>}
       </div>
-      {a.notes && <p className="lede" style={{ marginTop: 0, marginBottom: 22 }}>{a.status === "failed" ? "What went wrong: " : "Why this refresh: "}{a.notes}</p>}
+      {a.notes && <p className="lede" style={{ marginTop: 0, marginBottom: 22 }}>{a.status === "failed" ? "What went wrong: " : a.status === "published" ? "Note: " : "Why this refresh: "}{a.notes}</p>}
 
       {queued ? (
         <div className="card" style={{ textAlign: "center", padding: 40 }}>

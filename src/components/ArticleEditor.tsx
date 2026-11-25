@@ -70,7 +70,7 @@ export function ArticleEditor({ a }: { a: Article }) {
     setBusy(true);
     const res = await fetch(`/api/articles/${a.id}/publish`, { method: "POST" });
     const j = await res.json();
-    setMsg(res.ok ? "Published and confirmed live on WordPress." : "Couldn't publish: " + j.error);
+    setMsg(res.ok ? (j.dropped?.length ? `Published and confirmed live, but WordPress crashed until we left out: ${j.dropped.join(", ")}.` : "Published and confirmed live on WordPress.") : "Couldn't publish: " + j.error);
     if (res.ok) setLiveLink(j.link);
     setBusy(false); router.refresh();
   }

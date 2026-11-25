@@ -9,6 +9,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   const b = await req.json();
   const patch: Record<string, unknown> = {};
   for (const k of ["title", "slug", "html_body", "meta_desc", "publish_date"]) if (k in b) patch[k] = b[k];
+  if ("featured_img_url" in b) { patch.featured_img_url = b.featured_img_url ?? null; patch.featured_media_id = b.featured_media_id ?? null; }
   if (b.status && ["pending_review", "approved", "rejected"].includes(b.status)) patch.status = b.status;
   try {
     must(await db().from("articles").update(patch).eq("id", id).select("id"));

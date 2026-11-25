@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Article } from "@/lib/types";
+import { PhotoDialog, type Picked } from "./PhotoDialog";
 
 const TOOLS: ({ label: string; cmd: string; val?: string; title: string } | "sep")[] = [
   { label: "B", cmd: "bold", title: "Bold" },
@@ -30,8 +31,15 @@ export function ArticleEditor({ a }: { a: Article }) {
   const [busy, setBusy] = useState(false);
   const [adv, setAdv] = useState(false);
   const body = useRef<HTMLDivElement>(null);
+  const savedRange = useRef<Range | null>(null);
+  const [dlg, setDlg] = useState<null | { mode: "replace"; index: number } | { mode: "insert" }>(null);
+  // Built after the page loads: the server cannot parse the article HTML, so doing it during render would not match.
+  const [photos, setPhotos] = useState<{ src: string; alt: string }[]>([]);
+  useEffect(() => {
+    setPhotos([...new DOMParser().parseFromString(html, "text/html").querySelectorAll("img")].map((i) => ({ src: i.getAttribute("src") ?? "", alt: i.getAttribute("alt") ?? "" })));
+  }, [html]);
   const router = useRouter();
-  const locked = a.status === "published" && a.kind === "new";
+  const isLive = a.status === "published";
 
   useEffect(() => { if (body.current) body.current.innerHTML = a.html_body; }, [a.html_body]);
 
@@ -40,6 +48,30 @@ export function ArticleEditor({ a }: { a: Article }) {
     document.execCommand(cmd, false, val);
     if (body.current) setHtml(body.current.innerHTML);
   };
+  const sync = () => body.current && setHtml(body.current.innerHTML);
+  const imgAt = (i: number) => body.current?.querySelectorAll("img")[i] as HTMLImageElement | undefined;
+  const replacePhoto = (i: number, p: Picked) => {
+    const img = imgAt(i); if (!img) return;
+    img.src = p.url; img.alt = p.alt; ["srcset", "sizes", "width", "height"].forEach((x) => img.removeAttribute(x));
+    sync(); setMsg("Photo changed. Press Save to keep it.");
+  };
+  const removePhoto = (i: number) => {
+    const img = imgAt(i); if (!img) return;
+    if (!window.confirm("Remove this photo from the article?")) return;
+    (img.closest("figure") ?? img).remove(); sync(); setMsg("Photo removed. Press Save to keep it.");
+  };
+  const insertPhoto = (p: Picked) => {
+    const fig = document.createElement("figure"); fig.className = "wp-block-image";
+    const im = document.createElement("img"); im.src = p.url; im.alt = p.alt; im.loading = "lazy"; fig.appendChild(im);
+    const root = body.current; if (!root) return;
+    const r = savedRange.current;
+    if (r && root.contains(r.commonAncestorContainer) && r.commonAncestorContainer !== root) {
+      let node: Node = r.startContainer; while (node.parentNode && node.parentNode !== root) node = node.parentNode;
+      (node as ChildNode).after(fig);
+    } else root.appendChild(fig);
+    sync(); setMsg("Photo added. Press Save to keep it.");
+  };
+  const rememberCaret = () => { const sel = window.getSelection(); savedRange.current = sel && sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null; };
   const link = () => {
     const url = window.prompt("Link to which address?", "https://");
     if (url) run("createLink", url);
@@ -65,12 +97,12 @@ export function ArticleEditor({ a }: { a: Article }) {
     setBusy(false);
   }
   async function publishNow() {
-    if (!window.confirm("Publish this to WordPress right now?")) return;
+    if (!window.confirm(isLive ? "Update the live post on WordPress with these changes?" : "Publish this to WordPress right now?")) return;
     if (!(await patch())) return;
     setBusy(true);
     const res = await fetch(`/api/articles/${a.id}/publish`, { method: "POST" });
     const j = await res.json();
-    setMsg(res.ok ? (j.dropped?.length ? `Published and confirmed live. A WordPress plugin crashed on: ${j.dropped.join("; ")}.` : "Published and confirmed live on WordPress.") : "Couldn't publish: " + j.error);
+    setMsg(res.ok ? (isLive && !j.dropped?.length ? "Live post updated and confirmed on WordPress." : j.dropped?.length ? `Published and confirmed live. A WordPress plugin crashed on: ${j.dropped.join("; ")}.` : "Published and confirmed live on WordPress.") : "Couldn't publish: " + j.error);
     if (res.ok) setLiveLink(j.link);
     setBusy(false); router.refresh();
   }
@@ -84,10 +116,30 @@ export function ArticleEditor({ a }: { a: Article }) {
           {TOOLS.map((x, i) => x === "sep" ? <span key={i} className="sep" /> : (
             <button key={x.label} className="sm" title={x.title} onMouseDown={(e) => e.preventDefault()} onClick={() => run(x.cmd, x.val)} style={x.label === "B" ? { fontWeight: 800 } : x.label === "I" ? { fontStyle: "italic" } : undefined}>{x.label}</button>
           ))}
+          <button className="sm" title="Add a photo at your cursor" onMouseDown={(e) => { e.preventDefault(); rememberCaret(); }} onClick={() => setDlg({ mode: "insert" })}>Photo</button>
           <button className="sm" title="Add a link" onMouseDown={(e) => e.preventDefault()} onClick={link}>Link</button>
         </div>
-        <div ref={body} className="body-edit" contentEditable suppressContentEditableWarning onInput={() => body.current && setHtml(body.current.innerHTML)} aria-label="Article body" />
+        <div ref={body} className="body-edit" contentEditable suppressContentEditableWarning onInput={() => body.current && setHtml(body.current.innerHTML)} onDoubleClick={(e) => { const t = e.target as HTMLElement; if (t.tagName === "IMG") setDlg({ mode: "replace", index: [...(body.current?.querySelectorAll("img") ?? [])].indexOf(t as HTMLImageElement) }); }} aria-label="Article body" />
+        <p className="muted" style={{ margin: "14px 0 0" }}>Tip: double-click any photo to change it.</p>
       </div></div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="row between" style={{ marginBottom: 12 }}>
+          <p className="railtitle" style={{ margin: 0 }}>Photos in this article</p>
+          <button className="sm" onClick={() => { savedRange.current = null; setDlg({ mode: "insert" }); }}>Add a photo</button>
+        </div>
+        {photos.length === 0 ? <p className="muted" style={{ margin: 0 }}>No photos inside the article yet.</p> : (
+          <div className="phototiles">
+            {photos.map((ph, i) => (
+              <div key={i} className="phototile">
+                <img src={ph.src} alt={ph.alt} />
+                <div className="muted" style={{ fontSize: 12, minHeight: 32 }}>{ph.alt || "No description"}</div>
+                <div className="row" style={{ gap: 6 }}><button className="sm primary" onClick={() => setDlg({ mode: "replace", index: i })}>Change</button><button className="sm danger" onClick={() => removePhoto(i)}>Remove</button></div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="card formcard" style={{ marginTop: 16 }}>
         <p className="railtitle">Publishing details</p>
@@ -108,13 +160,15 @@ export function ArticleEditor({ a }: { a: Article }) {
         </details>
       </div>
 
+      {dlg && <PhotoDialog articleId={a.id} target="body" title={t} alt={dlg.mode === "replace" ? photos[dlg.index]?.alt : ""} onClose={() => setDlg(null)} onPick={(p) => { if (dlg.mode === "replace") replacePhoto(dlg.index, p); else insertPhoto(p); setDlg(null); }} />}
+
       <div className="actionbar">
         <button disabled={busy} onClick={() => patch()}>Save</button>
         {a.status !== "approved" && a.status !== "published" && <button className="green" disabled={busy} onClick={async () => { if (await patch({ status: "approved" })) setMsg(date && date > new Date().toISOString().slice(0, 10) ? `Approved. It will publish automatically on ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}. Use Publish now to send it immediately.` : "Approved. It publishes at the next nightly run, or use Publish now."); }}>Approve{date ? ` for ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}</button>}
         {a.status === "approved" && <button className="mark" disabled={busy} onClick={() => patch({ status: "pending_review" })}>Disapprove</button>}
         {a.status === "rejected" && <button disabled={busy} onClick={() => patch({ status: "pending_review" })}>Restore to review</button>}
         {a.status !== "published" && a.status !== "rejected" && <button className="danger" disabled={busy} onClick={() => patch({ status: "rejected" })}>Reject</button>}
-        {!locked && <button className="blue" disabled={busy} onClick={publishNow}>{a.kind === "refresh" ? "Update live post now" : "Publish now"}</button>}
+        <button className="blue" disabled={busy} onClick={publishNow}>{isLive || a.kind === "refresh" ? "Update live post" : "Publish now"}</button>
         <button className="danger" disabled={busy} onClick={remove} style={{ marginLeft: "auto" }}>Delete</button>
         <span className="muted">{msg}{liveLink && <> <a href={liveLink} target="_blank" rel="noreferrer">View it live ↗</a></>}</span>
       </div>

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { db, must } from "@/lib/db";
-import { ActionButton } from "@/components/ActionButton";
-import { StockPicker } from "@/components/StockPicker";
+import { FeaturedCard } from "@/components/FeaturedCard";
 import { ArticleEditor } from "@/components/ArticleEditor";
 import { Badge, fmtDate } from "@/components/Badge";
 import type { Article } from "@/lib/types";
@@ -32,14 +31,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
         <div className="split">
           <div><ArticleEditor a={a} /></div>
           <aside className="rail">
-            <div className="card">
-              <p className="railtitle">Featured image</p>
-              {a.featured_img_url ? <a href={a.featured_img_url} target="_blank" rel="noreferrer"><img className="hero-img" src={a.featured_img_url} alt="Featured image" /></a> : <div className="hero-empty">No image yet</div>}
-              <div className="row" style={{ marginTop: 12 }}>
-                <ActionButton url={`/api/articles/${a.id}/image`} body={{ mode: "ai" }} reload label={a.featured_img_url ? "Regenerate with AI" : "Generate with AI"} />
-              </div>
-            </div>
-            <div className="card"><p className="railtitle">Stock photos</p><StockPicker articleId={a.id} /></div>
+            <FeaturedCard articleId={a.id} title={a.title} url={a.featured_img_url} />
             {a.sources?.length > 0 && (
               <div className="card">
                 <p className="railtitle">Research sources</p>

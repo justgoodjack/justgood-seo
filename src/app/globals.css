@@ -386,3 +386,14 @@ td:first-of-type a, .tablewrap td { min-width: 0; }
 .cv.s-empty { background: var(--bad-wash); border: 1.5px dashed var(--bad); }
 .cal .cell.gap { background: color-mix(in srgb, var(--bad-wash) 55%, var(--card)); }
 .opentag { font-size: 11px; font-weight: 700; color: var(--bad); padding-left: 4px; letter-spacing: .02em; }
+
+/* photo manager */
+.modal-back { position: fixed; inset: 0; z-index: 100; background: rgba(8, 14, 26, .55); display: grid; place-items: center; padding: 16px; backdrop-filter: blur(3px); }
+.modal { background: var(--card); color: var(--ink); width: 100%; max-width: 780px; max-height: 92vh; overflow: auto; border-radius: 16px; padding: 22px 24px; border: 1px solid var(--line); box-shadow: 0 30px 80px -20px rgba(0,0,0,.5); }
+.thumbs.big { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); margin: 14px 0 10px; }
+.thumbs.big .thumb { aspect-ratio: 4 / 3; }
+.phototiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.phototile { display: grid; gap: 8px; align-content: start; }
+.phototile img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 9px; border: 1px solid var(--line); background: var(--sunk); display: block; }
+.body-edit img { cursor: pointer; transition: outline-color .15s; outline: 3px solid transparent; outline-offset: 2px; }
+.body-edit img:hover { outline-color: #ffd53d; }

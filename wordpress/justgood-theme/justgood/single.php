@@ -16,6 +16,7 @@ while ( have_posts() ) :
 	<div class="jg-progress" aria-hidden="true"><span data-progress></span></div>
 
 	<article <?php post_class( 'jg-article' ); ?>>
+		<div class="jg-article__top">
 		<header class="jg-wrap jg-article__head">
 			<?php jg_column_label( null, true ); ?>
 			<h1 class="jg-article__title"><?php the_title(); ?></h1>
@@ -40,6 +41,7 @@ while ( have_posts() ) :
 				<?php endif; ?>
 			</figure>
 		<?php endif; ?>
+		</div>
 
 		<div class="jg-prose">
 			<?php
@@ -79,15 +81,11 @@ while ( have_posts() ) :
 		$jg_more = jg_column_query( $jg_cat->slug, 4, array( get_the_ID() ) );
 		if ( $jg_more->have_posts() ) :
 			?>
-			<section class="jg-more-stories" aria-labelledby="jg-more-title">
+			<section class="jg-room jg-room--more" data-col="<?php echo esc_attr( $jg_cat->slug ); ?>" aria-labelledby="jg-more-title">
 				<div class="jg-wrap">
-					<h2 class="jg-more-stories__title" id="jg-more-title">
-						<?php
-						/* translators: %s: column name. */
-						printf( esc_html__( 'More in %s', 'justgood' ), esc_html( $jg_cat->name ) );
-						?>
-					</h2>
-					<div class="jg-grid jg-grid--4">
+					<p class="jg-room__kicker" id="jg-more-title"><?php esc_html_e( 'More from', 'justgood' ); ?></p>
+					<?php jg_room_word( $jg_cat ); ?>
+					<div class="jg-grid jg-grid--4 jg-room__grid">
 						<?php
 						while ( $jg_more->have_posts() ) :
 							$jg_more->the_post();

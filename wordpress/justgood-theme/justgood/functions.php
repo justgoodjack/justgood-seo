@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'JG_VERSION', '1.0.2' );
+define( 'JG_VERSION', '1.1.3' );
 
 require_once get_template_directory() . '/inc/template-tags.php';
 
@@ -88,11 +88,9 @@ add_filter( 'excerpt_more', fn() => '&hellip;' );
  * Body classes for page-level styling hooks.
  */
 function jg_body_class( $classes ) {
-	if ( is_singular( 'post' ) ) {
-		$cat = jg_primary_category();
-		if ( $cat ) {
-			$classes[] = 'column-' . sanitize_html_class( $cat->slug );
-		}
+	$cat = jg_page_column();
+	if ( $cat ) {
+		$classes[] = 'column-' . sanitize_html_class( $cat->slug );
 	}
 	return $classes;
 }

@@ -1,6 +1,6 @@
 ---
 name: "Just Good Bright Edition"
-description: "A bright, photo-led lifestyle magazine: white pages, graphite ink, one vermilion accent, bold grotesk headlines over a roomy reading serif."
+description: "A bright, photo-led lifestyle magazine where each column is its own color world: teal Travel, mint Health, navy Tech, sunflower Advice, with vermilion as the brand mark."
 colors:
   bg: "#FAFAF9"
   surface: "#FFFFFF"
@@ -14,6 +14,30 @@ colors:
   accent: "#E4572E"
   accent-strong: "#C2401B"
   accent-hover: "#A93515"
+  travel: "#0B5F63"
+  travel-mark: "#7FD8CF"
+  travel-strong: "#0E7C80"
+  travel-soft: "#E4F2F1"
+  travel-muted: "#CFE6E4"
+  health: "#D5EEDA"
+  health-ink: "#0F3520"
+  health-mark: "#1E7A46"
+  health-glow: "#8EE0A6"
+  health-strong: "#2E9B5A"
+  health-soft: "#EAF6EC"
+  health-muted: "#3C5A46"
+  tech: "#0D1530"
+  tech-mark: "#5B8CFF"
+  tech-strong: "#2456D6"
+  tech-soft: "#E9EEFC"
+  tech-muted: "#AEB8D6"
+  advice: "#FFD23F"
+  advice-ink: "#1B1A14"
+  advice-text: "#8A5A00"
+  advice-strong: "#E8B400"
+  advice-soft: "#FFF5D1"
+  advice-muted: "#4F4517"
+  brand-soft: "#FBEDE8"
 typography:
   heading:
     fontFamily: "Schibsted Grotesk, sans-serif"
@@ -33,6 +57,8 @@ spacing:
 rounded:
   sm: "10px"
   md: "10px"
+  lg: "28px"
+  room: "36px"
   pill: "999px"
 components:
   buttons: "Pill, solid accent-strong with white text, or ink outline; no shadow"
@@ -66,6 +92,17 @@ Just Good is a lifestyle magazine with four columns: Travel, Health, Tech and Ad
 - `night-muted` #A7ACB5 is secondary text on night (passes AA).
 - `placeholder` #2A2E36 is the base of the on-palette gradient shown when a story has no photo yet.
 
+### Four Worlds (column colors)
+
+Each column owns a color world so readers always know where they are. The world sets the room ground on the homepage, the column page header, the tint behind an article header, the label and dash on every teaser, the nav dot, the reading progress bar and the drop cap.
+
+- Travel: deep teal room `#0B5F63` with white text; marks `#7FD8CF`.
+- Health: fresh mint room `#D5EEDA` with deep green text `#0F3520`; marks `#1E7A46`.
+- Tech: electric navy room `#0D1530` with white text; marks `#5B8CFF`.
+- Advice: sunflower room `#FFD23F` with near-black text `#1B1A14`; text on white uses `#8A5A00`.
+- Vermilion stays the Just Good brand mark: the logo dot and buttons outside a room.
+- Rooms alternate dark and light (teal, mint, navy, sunflower) and stack with 36px top corners overlapping the room above.
+
 ## Typography
 
 - Headlines: Schibsted Grotesk, 700 to 800, line-height 1.02 to 1.12, slight negative tracking on large sizes. Emphasis inside a headline uses Schibsted Grotesk italic.
@@ -87,7 +124,7 @@ Just Good is a lifestyle magazine with four columns: Travel, Health, Tech and Ad
 
 ## Shapes
 
-- Images: 10px radius everywhere. Buttons and the search field: full pill. Nothing else is rounded.
+- Images: 10px radius. Section tiles: 28px. Rooms: 36px top corners. Section-tile photos: arch (full round top, 14px bottom). Buttons and the search field: full pill.
 
 ## Components
 
@@ -100,10 +137,12 @@ Just Good is a lifestyle magazine with four columns: Travel, Health, Tech and Ad
 
 ### Do's
 - Do lead every section with a real photograph.
-- Do keep one accent hue on every page.
+- Do keep vermilion as the only brand accent; column colors only mark their own column.
 - Do keep body text at 66 characters wide or less.
 - Do give each homepage section its own layout family.
 - Do honor prefers-reduced-motion and let reveals default to visible.
+- Do color-code every column touchpoint with that column's world color, and keep the tagline words highlighted in their world colors.
+- Do open each column room with its giant name word; the lead photo may rise over the lower part of the word.
 
 ### Don'ts
 - Don't use em dashes in any copy.

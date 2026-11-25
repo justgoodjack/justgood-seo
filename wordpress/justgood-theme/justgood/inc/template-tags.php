@@ -150,8 +150,9 @@ function jg_teaser( $args = array() ) {
 		)
 	);
 	$tag = in_array( $a['heading'], array( 'h1', 'h2', 'h3', 'h4' ), true ) ? $a['heading'] : 'h3';
+	$col = jg_primary_category();
 	?>
-	<article <?php post_class( 'jg-teaser jg-teaser--' . sanitize_html_class( $a['variant'] ) ); ?>>
+	<article <?php post_class( 'jg-teaser jg-teaser--' . sanitize_html_class( $a['variant'] ) ); ?> data-col="<?php echo esc_attr( $col ? $col->slug : '' ); ?>">
 		<a class="jg-teaser__link" href="<?php the_permalink(); ?>">
 			<?php
 			if ( $a['image'] ) {
@@ -242,8 +243,74 @@ function jg_nav_fallback() {
 	foreach ( jg_columns() as $slug ) {
 		$cat = get_category_by_slug( $slug );
 		if ( $cat ) {
-			printf( '<li><a href="%s">%s</a></li>', esc_url( get_category_link( $cat ) ), esc_html( $cat->name ) );
+			printf( '<li class="col-%1$s" data-col="%1$s"><a href="%2$s">%3$s</a></li>', esc_attr( $slug ), esc_url( get_category_link( $cat ) ), esc_html( $cat->name ) );
 		}
 	}
 	echo '</ul>';
+}
+
+/**
+ * Tag column menu items with their column slug so each picks up its world color.
+ *
+ * @param string[] $classes Item classes.
+ * @param WP_Post  $item    Menu item.
+ * @return string[]
+ */
+function jg_menu_item_class( $classes, $item ) {
+	if ( 'category' === $item->object ) {
+		$cat = get_category( (int) $item->object_id );
+		if ( $cat && in_array( $cat->slug, jg_columns(), true ) ) {
+			$classes[] = 'col-' . $cat->slug;
+		}
+	}
+	return $classes;
+}
+add_filter( 'nav_menu_css_class', 'jg_menu_item_class', 10, 2 );
+
+/**
+ * The column a page belongs to: the category archive, or a single post's column.
+ *
+ * @return WP_Term|null
+ */
+function jg_page_column() {
+	if ( is_category() ) {
+		$cat = get_queried_object();
+		return ( $cat && in_array( $cat->slug, jg_columns(), true ) ) ? $cat : null;
+	}
+	if ( is_singular( 'post' ) ) {
+		$cat = jg_primary_category( get_queried_object_id() );
+		return ( $cat && in_array( $cat->slug, jg_columns(), true ) ) ? $cat : null;
+	}
+	return null;
+}
+
+/**
+ * The giant section word used to open each column room.
+ *
+ * @param WP_Term $cat  Column.
+ * @param string  $tag  Heading tag.
+ * @param bool    $link Link to the column archive.
+ */
+function jg_room_word( $cat, $tag = 'h2', $link = true ) {
+	$tag  = in_array( $tag, array( 'h1', 'h2' ), true ) ? $tag : 'h2';
+	$word = esc_html( $cat->name ) . '<span class="jg-room__dot" aria-hidden="true">.</span>';
+	if ( $link ) {
+		$word = sprintf( '<a href="%s">%s</a>', esc_url( get_category_link( $cat ) ), $word );
+	}
+	printf( '<%1$s class="jg-room__word">%2$s</%1$s>', $tag, $word ); // phpcs:ignore
+}
+
+/**
+ * "All travel stories" pill for a room.
+ *
+ * @param WP_Term $cat Column.
+ */
+function jg_room_link( $cat ) {
+	printf(
+		'<a class="jg-pill" href="%1$s">%2$s %3$s</a>',
+		esc_url( get_category_link( $cat ) ),
+		/* translators: %s: column name. */
+		esc_html( sprintf( __( 'All %s stories', 'justgood' ), strtolower( $cat->name ) ) ),
+		jg_icon( 'arrow' ) // phpcs:ignore
+	);
 }

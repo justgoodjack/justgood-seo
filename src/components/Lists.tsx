@@ -52,7 +52,7 @@ export function TopicsList({ siteId, rows }: { siteId: string; rows: TopicRow[] 
             <tr key={k.id}>
               <td><input type="checkbox" className="chk" checked={sel.has(k.id)} onChange={() => toggle(k.id)} aria-label={`Select ${k.phrase}`} /></td>
               <td style={{ fontWeight: 600 }}>{k.phrase}</td><td>{k.cluster}</td><td className="muted">{k.intent}</td>
-              <td className="num">{k.priority}</td><td><Badge status={k.status} /></td><td>{fmtDate(k.scheduled_date)}</td>
+              <td className="num">{k.priority}</td><td><Badge status={k.status} /></td><td style={{ whiteSpace: "nowrap" }}>{fmtDate(k.scheduled_date)}</td>
               <td className="num"><button className="sm danger" disabled={busy} onClick={() => del({ ids: [k.id] }, `Delete the topic "${k.phrase}"?`)}>Delete</button></td>
             </tr>
           ))}
@@ -94,8 +94,8 @@ export function ArticlesList({ siteId, rows }: { siteId: string; rows: ArticleRo
               <td><input type="checkbox" className="chk" checked={sel.has(x.id)} onChange={() => toggle(x.id)} aria-label={`Select ${x.title}`} /></td>
               <td><Link href={`/articles/${x.id}`}>{x.title || "(queued refresh)"}</Link></td>
               <td><Badge status={x.status} /></td>
-              <td>{fmtDate(x.publish_date)}</td>
-              <td>{x.wp_link ? <a href={x.wp_link} target="_blank" rel="noreferrer">View ↗</a> : <span className="muted">-</span>}</td>
+              <td style={{ whiteSpace: "nowrap" }}>{fmtDate(x.publish_date)}</td>
+              <td style={{ whiteSpace: "nowrap" }}>{x.wp_link ? <a href={x.wp_link} target="_blank" rel="noreferrer">View ↗</a> : <span className="muted">-</span>}</td>
               <td className="num"><button className="sm danger" disabled={busy} onClick={() => del([x.id], `Delete "${x.title || "this article"}" from this tool? ${x.status === "published" ? liveNote : ""}`)}>Delete</button></td>
             </tr>
           ))}

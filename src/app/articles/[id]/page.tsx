@@ -14,7 +14,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
   const queued = a.status === "queued";
   return (
     <>
-      <Link href={`/sites/${a.site_id}`} className="crumb">← Back to blog</Link>
+      <Link href={`/sites/${a.site_id}/articles`} className="crumb">← Back to articles</Link>
       <div className="row" style={{ marginBottom: 22, gap: 12 }}>
         <p className="eyebrow" style={{ margin: 0 }}>{a.kind === "refresh" ? "Refresh" : "Draft"}</p>
         <Badge status={a.status} />
@@ -26,7 +26,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
       {queued ? (
         <div className="card" style={{ textAlign: "center", padding: 40 }}>
           <h2>{a.title || "Queued refresh"}</h2>
-          <p className="lede" style={{ margin: "10px auto 0" }}>Waiting for the writer. It runs overnight, or use Write drafts in Setup on the blog page.</p>
+          <p className="lede" style={{ margin: "10px auto 0" }}>Waiting for the writer. It runs overnight, or use Write drafts on the Articles page.</p>
         </div>
       ) : (
         <div className="split">

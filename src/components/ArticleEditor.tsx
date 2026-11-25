@@ -58,7 +58,7 @@ export function ArticleEditor({ a }: { a: Article }) {
     if (live) wp = window.confirm("This post is live on your blog.\n\nOK = also move it to the WordPress trash (it disappears from your site)\nCancel = leave it live on your blog");
     setBusy(true);
     const res = await fetch(`/api/articles/${a.id}${wp ? "?wp=1" : ""}`, { method: "DELETE" });
-    if (res.ok) { router.push(`/sites/${a.site_id}`); router.refresh(); return; }
+    if (res.ok) { router.push(`/sites/${a.site_id}/articles`); router.refresh(); return; }
     const j = await res.json().catch(() => ({}));
     setMsg("Couldn't delete: " + (j.error ?? res.status));
     setBusy(false);
